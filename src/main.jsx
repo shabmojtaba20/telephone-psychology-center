@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HeartHandshake, Phone, ShieldCheck, Clock3, UserRound, ArrowLeft, Menu, X, CalendarDays, CheckCircle2, LoaderCircle, AlertCircle, LogIn, LogOut, Mail } from 'lucide-react';
-import { fetchApprovedPsychologists, fetchAvailableSlots, fetchSpecialties, getCurrentSession, sendLoginLink, signOutUser, subscribeToAuth } from './lib/supabase';
+import { fetchApprovedPsychologists, fetchAvailableSlots, fetchSpecialties, getCurrentSession, sendLoginLink, signOutUser, startAppointment, subscribeToAuth } from './lib/supabase';
 import './styles.css';
 
 const fallbackServices = [
@@ -36,17 +36,17 @@ function RequestForm({ consultationTypes, selectedSlot, onSubmitted }) {
   const [form, setForm] = useState({ name: '', phone: '', type: consultationTypes[0] || 'مشاوره فردی', note: '' });
   const [errors, setErrors] = useState({});
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const nextErrors = {};
     if (!form.name.trim()) nextErrors.name = 'نام و نام خانوادگی را وارد کنید.';
     if (!/^09\d{9}$/.test(form.phone.replace(/\s/g, ''))) nextErrors.phone = 'شماره موبایل معتبر وارد کنید.';
     if (!selectedSlot) nextErrors.slot = 'ابتدا یک نوبت واقعی را انتخاب کنید.';
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length === 0) onSubmitted(form);
+    if (Object.keys(nextErrors).length === 0) await onSubmitted(form);
   };
   return <form className="request-form" onSubmit={submit} noValidate>
-    <div className="form-heading"><div className="form-icon"><CalendarDays size={22} /></div><div><h3>تکمیل اطلاعات نوبت</h3><p>نوبت انتخاب‌شده از سامانه در این فرم قفل می‌شود؛ ثبت نهایی پس از اتصال به مسیر رزرو انجام خواهد شد.</p></div></div>
+    <div className="form-heading"><div className="form-icon"><CalendarDays size={22} /></div><div><h3>تکمیل اطلاعات نوبت</h3><p>اطلاعات تماس را تکمیل کنید؛ سپس نوبت انتخاب‌شده برای شما رزرو موقت می‌شود.</p></div></div>
     {selectedSlot && <div className="selected-slot"><strong>نوبت انتخاب‌شده</strong><span>{formatSlotDate(selectedSlot.starts_at)} — ساعت {formatSlotTime(selectedSlot.starts_at)}</span><span>{selectedSlot.duration_minutes} دقیقه · {formatPrice(selectedSlot.price)}</span></div>}
     {errors.slot && <small className="slot-error">{errors.slot}</small>}
     <div className="form-grid">
@@ -55,7 +55,7 @@ function RequestForm({ consultationTypes, selectedSlot, onSubmitted }) {
       <label>نوع مشاوره<select value={form.type} onChange={(e) => update('type', e.target.value)}>{consultationTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
       <label className="full">توضیح کوتاه (اختیاری)<textarea rows="3" value={form.note} onChange={(e) => update('note', e.target.value)} placeholder="اگر توضیحی برای هماهنگی دارید، اینجا بنویسید." /></label>
     </div>
-    <div className="form-footer"><span><ShieldCheck size={17} /> اطلاعات شما محرمانه مدیریت می‌شود.</span><button className="primary-button" type="submit">ادامه رزرو <ArrowLeft size={18} /></button></div>
+    <div className="form-footer"><span><ShieldCheck size={17} /> اطلاعات شما محرمانه مدیریت می‌شود.</span><button className="primary-button" type="submit">ثبت و ادامه پرداخت <ArrowLeft size={18} /></button></div>
   </form>;
 }
 
@@ -66,6 +66,9 @@ function SlotList({ slots, loading, error, session, onSelect }) {
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingResult, setBookingResult] = useState(null);
+  const [bookingError, setBookingError] = useState('');
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [specialties, setSpecialties] = useState([]);
@@ -91,14 +94,34 @@ function App() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    fetchAvailableSlots().then((slotData) => active && setSlots(slotData)).catch((err) => { if (active) setSlotError(err?.message || 'دریافت نوبت‌های آزاد انجام نشد.'); }).finally(() => active && setSlotLoading(false));
-    return () => { active = false; };
-  }, []);
+  const loadSlots = async () => {
+    setSlotError('');
+    setSlotLoading(true);
+    try { setSlots(await fetchAvailableSlots()); }
+    catch (err) { setSlotError(err?.message || 'دریافت نوبت‌های آزاد انجام نشد.'); }
+    finally { setSlotLoading(false); }
+  };
+
+  useEffect(() => { loadSlots(); }, []);
 
   const consultationTypes = specialties.length ? specialties.map((item) => item.name) : ['مشاوره فردی', 'مشاوره خانواده', 'مشاوره نوجوان', 'مشاوره زوجین'];
-  const selectSlot = (slot) => { setSelectedSlot(slot); setSubmitted(false); document.getElementById(session ? 'request' : 'auth')?.scrollIntoView({ behavior: 'smooth' }); };
+  const selectSlot = (slot) => { setSelectedSlot(slot); setSubmitted(false); setBookingResult(null); setBookingError(''); document.getElementById(session ? 'request' : 'auth')?.scrollIntoView({ behavior: 'smooth' }); };
+
+  const submitBooking = async () => {
+    if (!selectedSlot) return;
+    setBookingLoading(true); setBookingError(''); setBookingResult(null); setSubmitted(false);
+    try {
+      const result = await startAppointment(selectedSlot.id);
+      setBookingResult(result);
+      setSubmitted(true);
+      setSelectedSlot(null);
+      await loadSlots();
+    } catch (err) {
+      const message = err?.context?.body?.error || err?.message || 'ثبت نوبت انجام نشد. ممکن است این زمان توسط کاربر دیگری گرفته شده باشد.';
+      setBookingError(message);
+      await loadSlots();
+    } finally { setBookingLoading(false); }
+  };
 
   return <div className="app">
     <header className="header"><div className="container nav"><a className="brand" href="#top" aria-label="مرکز مشاوره تلفنی روان"><span className="brand-mark"><HeartHandshake size={24} /></span><span>مرکز مشاوره تلفنی روان</span></a><button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="منو">{menuOpen ? <X /> : <Menu />}</button><nav className={menuOpen ? 'nav-links open' : 'nav-links'}><a href="#services" onClick={() => setMenuOpen(false)}>خدمات</a><a href="#psychologists" onClick={() => setMenuOpen(false)}>مشاوران</a><a href="#slots" onClick={() => setMenuOpen(false)}>نوبت‌ها</a><a href="#how" onClick={() => setMenuOpen(false)}>نحوه دریافت مشاوره</a><a href="#auth" onClick={() => setMenuOpen(false)}>{session ? 'حساب من' : 'ورود'}</a><button className="nav-cta" onClick={startRequest}>درخواست مشاوره</button></nav></div></header>
@@ -107,9 +130,9 @@ function App() {
       <section id="services" className="section"><div className="container"><div className="section-heading"><span className="eyebrow">خدمات مرکز</span><h2>پشتیبانی متناسب با نیاز شما</h2><p>اطلاعات عمومی رابط کاربری آماده است و داده‌های فعال سامانه نیز در حال اتصال هستند.</p></div><div className="service-grid">{fallbackServices.map(({ icon: Icon, title, text }) => <article className="service-card" key={title}><div className="service-icon"><Icon size={22} /></div><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
       <section id="psychologists" className="section"><div className="container"><div className="section-heading"><span className="eyebrow">مشاوران سامانه</span><h2>مشاوران تأییدشده</h2>{dataLoading ? <p><LoaderCircle className="spin" size={18} /> در حال دریافت اطلاعات...</p> : dataError ? <p><AlertCircle size={18} /> {dataError}</p> : psychologists.length ? <p>{psychologists.length} مشاور فعال در سامانه پیدا شد.</p> : <p>در حال حاضر مشاور تأییدشده‌ای در سامانه ثبت نشده است.</p>}</div>{psychologists.length > 0 && <div className="service-grid">{psychologists.map((person) => <article className="service-card" key={person.id}><div className="service-icon"><UserRound size={22} /></div><h3>{person.professional_title || 'روانشناس'}</h3><p>{person.bio || 'اطلاعات معرفی این مشاور هنوز تکمیل نشده است.'}</p>{person.years_experience != null && <small>{person.years_experience} سال سابقه</small>}</article>)}</div>}</div></section>
       <SlotList slots={slots} loading={slotLoading} error={slotError} session={session} onSelect={selectSlot} />
-      <section id="how" className="process-section"><div className="container process-grid"><div><span className="eyebrow">مسیر دریافت خدمت</span><h2>سه مرحله ساده تا شروع مشاوره</h2></div><div className="steps"><div className="step"><b>۱</b><div><h3>ورود به حساب</h3><p>با ایمیل خود وارد شوید تا نوبت به حساب کاربری شما متصل شود.</p></div></div><div className="step"><b>۲</b><div><h3>انتخاب مشاور و زمان</h3><p>زمان‌های واقعی سامانه نمایش داده می‌شوند و می‌توانید نوبت مناسب را انتخاب کنید.</p></div></div><div className="step"><b>۳</b><div><h3>دریافت مشاوره</h3><p>پس از تکمیل مسیر رزرو و پرداخت، مشاوره تلفنی انجام می‌شود.</p></div></div></div></div></section>
+      <section id="how" className="process-section"><div className="container process-grid"><div><span className="eyebrow">مسیر دریافت خدمت</span><h2>سه مرحله ساده تا شروع مشاوره</h2></div><div className="steps"><div className="step"><b>۱</b><div><h3>ورود به حساب</h3><p>با ایمیل خود وارد شوید تا نوبت به حساب کاربری شما متصل شود.</p></div></div><div className="step"><b>۲</b><div><h3>انتخاب مشاور و زمان</h3><p>زمان‌های واقعی سامانه نمایش داده می‌شوند و می‌توانید نوبت مناسب را انتخاب کنید.</p></div></div><div className="step"><b>۳</b><div><h3>رزرو موقت و پرداخت</h3><p>نوبت برای شما موقتاً نگه داشته می‌شود و سپس مسیر پرداخت ادامه پیدا می‌کند.</p></div></div></div></div></section>
       <section id="auth" className="request-section"><div className="container">{authLoading ? <div className="success-box"><LoaderCircle className="spin" size={34} /><p>در حال بررسی وضعیت ورود...</p></div> : <AuthPanel session={session} onAuthenticated={setSession} />}</div></section>
-      <section id="request" className="request-section"><div className="container">{!session ? <div className="success-box"><LogIn size={40} /><h2>ابتدا وارد حساب شوید</h2><p>برای ادامه انتخاب نوبت، ابتدا ورود به حساب کاربری لازم است.</p><button className="primary-button" onClick={() => document.getElementById('auth')?.scrollIntoView({ behavior: 'smooth' })}>ورود به حساب <ArrowLeft size={18} /></button></div> : submitted ? <div className="success-box"><CheckCircle2 size={42} /><h2>اطلاعات اولیه ثبت شد</h2><p>نوبت انتخاب‌شده در فرم ثبت شد. ثبت نهایی هنوز انجام نشده و در قدم بعد به مسیر رزرو موجود در Backend متصل می‌شویم.</p><button className="primary-button" onClick={() => setSubmitted(false)}>ویرایش اطلاعات</button></div> : <RequestForm consultationTypes={consultationTypes} selectedSlot={selectedSlot} onSubmitted={() => setSubmitted(true)} />}</div></section>
+      <section id="request" className="request-section"><div className="container">{!session ? <div className="success-box"><LogIn size={40} /><h2>ابتدا وارد حساب شوید</h2><p>برای ادامه انتخاب نوبت، ابتدا ورود به حساب کاربری لازم است.</p><button className="primary-button" onClick={() => document.getElementById('auth')?.scrollIntoView({ behavior: 'smooth' })}>ورود به حساب <ArrowLeft size={18} /></button></div> : submitted && bookingResult ? <div className="success-box"><CheckCircle2 size={42} /><h2>نوبت موقتاً رزرو شد</h2><p>نوبت شما تا {bookingResult.hold_until ? new Date(bookingResult.hold_until).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '۱۰ دقیقه'} در اختیار شماست.</p><p>شماره رزرو: {bookingResult.appointment_id}</p>{bookingResult.gateway_configured ? <p>مرحله بعدی پرداخت است.</p> : <p>درگاه پرداخت هنوز در این مسیر فعال نشده است؛ پرداخت نهایی را انجام ندهید تا درگاه متصل شود.</p>}<button className="primary-button" onClick={() => { setSubmitted(false); setBookingResult(null); }}>بازگشت</button></div> : <RequestForm consultationTypes={consultationTypes} selectedSlot={selectedSlot} onSubmitted={submitBooking} />}{bookingLoading && <div className="success-box"><LoaderCircle className="spin" size={28} /><p>در حال ثبت نوبت و رزرو موقت...</p></div>}{bookingError && <div className="auth-error"><AlertCircle size={17} /> {bookingError}</div>}</div></section>
     </main>
     <footer id="about" className="footer"><div className="container footer-inner"><div><strong>مرکز مشاوره تلفنی روان</strong><p>Frontend متصل به داده‌های عمومی Supabase — Backend دست‌نخورده باقی مانده است.</p></div><span>© ۲۰۲۶</span></div></footer>
   </div>;
