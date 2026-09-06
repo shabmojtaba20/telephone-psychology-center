@@ -56,16 +56,28 @@ export async function fetchAvailableSlots() {
 export async function startAppointment(slotId) {
   if (!slotId) throw new Error('slot_id_required');
 
-  const { data, error } = await supabase.functions.invoke('payment-start', {
+  const { data: booking, error: bookingError } = await supabase.functions.invoke('payment-start', {
     body: { slot_id: slotId },
   });
 
-  if (error) throw error;
-  if (!data?.ok || !data?.appointment_id) {
-    throw new Error(data?.error || 'booking_failed');
+  if (bookingError) throw bookingError;
+  if (!booking?.ok || !booking?.appointment_id) {
+    throw new Error(booking?.error || 'booking_failed');
   }
 
-  return data;
+  const { data: payment, error: paymentError } = await supabase.functions.invoke('payment-start-v4', {
+    body: { appointment_id: booking.appointment_id },
+  });
+
+  if (paymentError) throw paymentError;
+  if (!payment?.ok || !payment?.payment_url) {
+    throw new Error(payment?.error || 'payment_start_failed');
+  }
+
+  // The gateway URL is returned only by the authenticated Edge Function.
+  // Redirecting here keeps gateway credentials and provider details off the client.
+  window.location.assign(payment.payment_url);
+  return { ...booking, ...payment };
 }
 
 export async function startAppointmentPayment(appointmentId, gateway) {
@@ -83,6 +95,7 @@ export async function startAppointmentPayment(appointmentId, gateway) {
     throw new Error(data?.error || 'payment_start_failed');
   }
 
+  window.location.assign(data.payment_url);
   return data;
 }
 
