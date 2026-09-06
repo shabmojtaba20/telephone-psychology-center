@@ -27,6 +27,32 @@ export async function fetchApprovedPsychologists() {
   return data ?? [];
 }
 
+export async function fetchAvailableSlots() {
+  const { data, error } = await supabase
+    .from('appointment_slots')
+    .select(`
+      id,
+      psychologist_id,
+      starts_at,
+      ends_at,
+      duration_minutes,
+      price,
+      psychologists!inner (
+        professional_title,
+        years_experience,
+        status
+      )
+    `)
+    .eq('status', 'AVAILABLE')
+    .eq('psychologists.status', 'APPROVED')
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at')
+    .limit(50);
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function sendLoginLink(email) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
