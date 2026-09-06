@@ -10,8 +10,10 @@
   <body>
     <div id="root"></div>
     <script type="module">
-      const isPaymentCallback = window.location.pathname.startsWith('/payment/callback/');
-      import(isPaymentCallback ? '/src/payment-callback.jsx' : '/src/main.jsx');
+      const path = window.location.pathname;
+      const isPaymentCallback = path.startsWith('/payment/callback/');
+      const isAdmin = path.startsWith('/admin');
+      import(isPaymentCallback ? '/src/payment-callback.jsx' : isAdmin ? '/src/admin.jsx' : '/src/main.jsx');
     </script>
   </body>
 </html>
