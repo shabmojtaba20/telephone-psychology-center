@@ -1,12 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://auvcptwoixrpgwqahpcr.supabase.co';
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Ok1ZjFucbbzeh0Q38flQog_e6XaNg6M';
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Ok1ZjFucbbzeh0Q38flQog_e6XaNg6M6';
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
 export async function fetchSpecialties() { const { data, error } = await supabase.from('specialties').select('id,name,slug,description').eq('is_active', true).order('name'); if (error) throw error; return data ?? []; }
 export async function fetchApprovedPsychologists() { const { data, error } = await supabase.from('psychologists').select('id,professional_title,bio,years_experience,therapy_methods,consultation_types,phone_price,phone_duration').eq('status', 'APPROVED').order('created_at'); if (error) throw error; return data ?? []; }
 export async function fetchAvailableSlots() { const { data, error } = await supabase.from('appointment_slots').select(`id,psychologist_id,starts_at,ends_at,duration_minutes,price,psychologists!inner (professional_title,years_experience,status)`).eq('status', 'AVAILABLE').eq('psychologists.status', 'APPROVED').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50); if (error) throw error; return data ?? []; }
+
+export async function requestCashPayment(slotId) {
+  if (!slotId) throw new Error('slot_id_required');
+  const { data, error } = await supabase.rpc('request_cash_payment', { p_slot_id: slotId });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.appointment_id) throw new Error('cash_payment_request_failed');
+  return result;
+}
 
 export async function startAppointment(slotId) {
   if (!slotId) throw new Error('slot_id_required');
@@ -14,9 +23,6 @@ export async function startAppointment(slotId) {
   if (bookingError) throw bookingError;
   if (!booking?.ok || !booking?.appointment_id) throw new Error(booking?.error || 'booking_failed');
 
-  // Booking is a valid pre-payment step. If no payment gateway is configured,
-  // keep the held appointment and return it so the UI can clearly show the
-  // user that payment is the next step rather than treating the booking as failed.
   try {
     const { data: payment, error: paymentError } = await supabase.functions.invoke('payment-start-v4', { body: { appointment_id: booking.appointment_id } });
     if (paymentError) throw paymentError;
@@ -24,9 +30,15 @@ export async function startAppointment(slotId) {
       window.location.assign(payment.payment_url);
       return { ...booking, ...payment };
     }
-    return { ...booking, gateway_configured: false, payment_error: payment?.error || 'payment_not_configured' };
+    const cash = await requestCashPayment(slotId);
+    return { ...booking, ...cash, payment_method: 'cash', gateway_configured: false };
   } catch (err) {
-    return { ...booking, gateway_configured: false, payment_error: err?.context?.body?.error || err?.message || 'payment_start_failed' };
+    try {
+      const cash = await requestCashPayment(slotId);
+      return { ...booking, ...cash, payment_method: 'cash', gateway_configured: false, payment_error: err?.context?.body?.error || err?.message || 'payment_start_failed' };
+    } catch (cashError) {
+      throw cashError;
+    }
   }
 }
 
