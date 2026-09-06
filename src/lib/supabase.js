@@ -8,7 +8,28 @@ export async function fetchSpecialties() { const { data, error } = await supabas
 export async function fetchApprovedPsychologists() { const { data, error } = await supabase.from('psychologists').select('id,professional_title,bio,years_experience,therapy_methods,consultation_types,phone_price,phone_duration').eq('status', 'APPROVED').order('created_at'); if (error) throw error; return data ?? []; }
 export async function fetchAvailableSlots() { const { data, error } = await supabase.from('appointment_slots').select(`id,psychologist_id,starts_at,ends_at,duration_minutes,price,psychologists!inner (professional_title,years_experience,status)`).eq('status', 'AVAILABLE').eq('psychologists.status', 'APPROVED').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50); if (error) throw error; return data ?? []; }
 
-export async function startAppointment(slotId) { if (!slotId) throw new Error('slot_id_required'); const { data: booking, error: bookingError } = await supabase.functions.invoke('payment-start', { body: { slot_id: slotId } }); if (bookingError) throw bookingError; if (!booking?.ok || !booking?.appointment_id) throw new Error(booking?.error || 'booking_failed'); const { data: payment, error: paymentError } = await supabase.functions.invoke('payment-start-v4', { body: { appointment_id: booking.appointment_id } }); if (paymentError) throw paymentError; if (!payment?.ok || !payment?.payment_url) throw new Error(payment?.error || 'payment_start_failed'); window.location.assign(payment.payment_url); return { ...booking, ...payment }; }
+export async function startAppointment(slotId) {
+  if (!slotId) throw new Error('slot_id_required');
+  const { data: booking, error: bookingError } = await supabase.functions.invoke('payment-start', { body: { slot_id: slotId } });
+  if (bookingError) throw bookingError;
+  if (!booking?.ok || !booking?.appointment_id) throw new Error(booking?.error || 'booking_failed');
+
+  // Booking is a valid pre-payment step. If no payment gateway is configured,
+  // keep the held appointment and return it so the UI can clearly show the
+  // user that payment is the next step rather than treating the booking as failed.
+  try {
+    const { data: payment, error: paymentError } = await supabase.functions.invoke('payment-start-v4', { body: { appointment_id: booking.appointment_id } });
+    if (paymentError) throw paymentError;
+    if (payment?.ok && payment?.payment_url) {
+      window.location.assign(payment.payment_url);
+      return { ...booking, ...payment };
+    }
+    return { ...booking, gateway_configured: false, payment_error: payment?.error || 'payment_not_configured' };
+  } catch (err) {
+    return { ...booking, gateway_configured: false, payment_error: err?.context?.body?.error || err?.message || 'payment_start_failed' };
+  }
+}
+
 export async function startAppointmentPayment(appointmentId, gateway) { if (!appointmentId) throw new Error('appointment_id_required'); const body = { appointment_id: appointmentId }; if (gateway) body.gateway = gateway; const { data, error } = await supabase.functions.invoke('payment-start-v4', { body }); if (error) throw error; if (!data?.ok || !data?.payment_url) throw new Error(data?.error || 'payment_start_failed'); window.location.assign(data.payment_url); return data; }
 
 export async function fetchMyAppointments() { const { data, error } = await supabase.from('appointments').select('id,slot_id,status,gross_amount,currency,booked_at,confirmed_at,created_at,appointment_slots:slot_id(starts_at,ends_at,duration_minutes),psychologists:psychologist_id(professional_title)').order('created_at', { ascending: false }).limit(50); if (error) throw error; return data ?? []; }
