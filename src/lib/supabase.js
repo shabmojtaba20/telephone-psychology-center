@@ -68,6 +68,24 @@ export async function startAppointment(slotId) {
   return data;
 }
 
+export async function startAppointmentPayment(appointmentId, gateway) {
+  if (!appointmentId) throw new Error('appointment_id_required');
+
+  const body = { appointment_id: appointmentId };
+  if (gateway) body.gateway = gateway;
+
+  const { data, error } = await supabase.functions.invoke('payment-start-v4', {
+    body,
+  });
+
+  if (error) throw error;
+  if (!data?.ok || !data?.payment_url) {
+    throw new Error(data?.error || 'payment_start_failed');
+  }
+
+  return data;
+}
+
 export async function sendLoginLink(email) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
