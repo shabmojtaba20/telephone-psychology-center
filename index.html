@@ -9,6 +9,9 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module">
+      const isPaymentCallback = window.location.pathname.startsWith('/payment/callback/');
+      import(isPaymentCallback ? '/src/payment-callback.jsx' : '/src/main.jsx');
+    </script>
   </body>
 </html>
