@@ -13,7 +13,7 @@
       const path = window.location.pathname;
       const isPaymentCallback = path.startsWith('/payment/callback/');
       const isAdmin = path.startsWith('/admin');
-      import(isPaymentCallback ? '/src/payment-callback.jsx' : isAdmin ? '/src/admin.jsx' : '/src/main.jsx');
+      import(isPaymentCallback ? '/src/payment-callback.jsx' : isAdmin ? '/src/admin-dashboard.jsx' : '/src/main.jsx');
     </script>
   </body>
 </html>
