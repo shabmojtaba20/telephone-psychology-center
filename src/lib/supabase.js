@@ -53,6 +53,21 @@ export async function fetchAvailableSlots() {
   return data ?? [];
 }
 
+export async function startAppointment(slotId) {
+  if (!slotId) throw new Error('slot_id_required');
+
+  const { data, error } = await supabase.functions.invoke('payment-start', {
+    body: { slot_id: slotId },
+  });
+
+  if (error) throw error;
+  if (!data?.ok || !data?.appointment_id) {
+    throw new Error(data?.error || 'booking_failed');
+  }
+
+  return data;
+}
+
 export async function sendLoginLink(email) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
