@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://auvcptwoixrpgwqahpcr.supabase.co';
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Ok1ZjFucbbzeh0Q38flQog_e6XaNg6M6';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://aserkyiwwyggtixckjsv.supabase.co';
+const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
 export async function fetchSpecialties() { const { data, error } = await supabase.from('specialties').select('id,name,slug,description').eq('is_active', true).order('name'); if (error) throw error; return data ?? []; }
@@ -47,7 +47,7 @@ export async function startAppointmentPayment(appointmentId, gateway) { if (!app
 export async function fetchMyAppointments() { const { data, error } = await supabase.from('appointments').select('id,slot_id,status,gross_amount,currency,booked_at,confirmed_at,created_at,appointment_slots:slot_id(starts_at,ends_at,duration_minutes),psychologists:psychologist_id(professional_title)').order('created_at', { ascending: false }).limit(50); if (error) throw error; return data ?? []; }
 export async function fetchMyPayments(appointmentIds = []) { let query = supabase.from('payments').select('id,appointment_id,amount,currency,status,gateway,reference_number,paid_at,created_at').order('created_at', { ascending: false }).limit(100); if (appointmentIds.length) query = query.in('appointment_id', appointmentIds); const { data, error } = await query; if (error) throw error; return data ?? []; }
 
-// Email login (legacy flow kept available until the phone-OTP UI is switched over).
+// Email login (legacy helper kept for compatibility with existing flows).
 export async function sendLoginLink(email) { const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } }); if (error) throw error; }
 
 // Phone OTP flow: send a 6-digit SMS code, then verify it to create the session.
