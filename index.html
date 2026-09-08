@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مرکز مشاوره تلفنی روان</title>
+<style>
+body{font-family:Tahoma,Arial,sans-serif;margin:0;background:#f7f8fc;color:#1f2937}.wrap{max-width:980px;margin:auto;padding:28px 18px}.hero{background:#fff;border-radius:22px;padding:28px;box-shadow:0 8px 30px #0000000d;margin-bottom:22px}h1{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{background:#fff;border:2px solid transparent;border-radius:18px;padding:20px;cursor:pointer;box-shadow:0 5px 20px #0000000a}.card.selected{border-color:#6d5dfc}.price{font-weight:bold;margin:10px 0}.btn{border:0;border-radius:12px;padding:12px 18px;background:#6d5dfc;color:#fff;cursor:pointer;font-size:15px}.btn:disabled{opacity:.5}.panel{background:#fff;border-radius:18px;padding:20px;margin-top:20px}input,textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd;border-radius:10px;margin:7px 0 14px;font-family:inherit}small{color:#6b7280}.msg{padding:12px;border-radius:10px;margin-top:12px;background:#eef2ff}.hidden{display:none}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body><main class="wrap">
+<section class="hero"><div class="top"><div><h1>مرکز مشاوره تلفنی روان</h1><p>خدمت موردنظر را انتخاب کنید و زمان مشاوره را رزرو کنید.</p></div><a href="/admin.html">پنل مدیریت</a></div></section>
+<section><h2>خدمات مرکز</h2><div id="services" class="grid"></div></section>
+<section id="booking" class="panel hidden"><h2>رزرو نوبت</h2><p id="chosen"></p>
+<label>ایمیل شما</label><input id="email" type="email" placeholder="example@email.com">
+<button class="btn" id="login">ورود / ارسال لینک ورود</button>
+<div id="logged" class="hidden"><label>تاریخ و ساعت نوبت</label><input id="when" type="datetime-local"><label>توضیحات اختیاری</label><textarea id="notes" rows="3" placeholder="در صورت نیاز توضیح کوتاه"></textarea><button class="btn" id="book">ثبت نوبت</button></div>
+<div id="msg"></div></section>
+</main>
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const supabase=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX');
+let selected=null;
+const $=id=>document.getElementById(id);
+function message(t){$('msg').textContent=t}
+async function load(){const {data,error}=await supabase.from('services').select('*').eq('is_active',true).order('sort_order'); if(error){message(error.message);return} $('services').innerHTML=data.map(s=>`<article class="card" data-id="${s.id}"><h3>${s.name}</h3><p>${s.description||''}</p><div>${s.duration_minutes} دقیقه</div><div class="price">${s.price==null?'قیمت پس از هماهنگی':Number(s.price).toLocaleString('fa-IR')+' تومان'}</div><button class="btn">انتخاب خدمت</button></article>`).join('');document.querySelectorAll('.card').forEach(c=>c.onclick=()=>{selected=data.find(x=>x.id===c.dataset.id);document.querySelectorAll('.card').forEach(x=>x.classList.remove('selected'));c.classList.add('selected');$('booking').classList.remove('hidden');$('chosen').textContent='خدمت انتخاب‌شده: '+selected.name;$('booking').scrollIntoView({behavior:'smooth'})})}
+$('login').onclick=async()=>{const email=$('email').value.trim();if(!email)return message('ایمیل را وارد کنید.');const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});message(error?error.message:'لینک ورود به ایمیل شما ارسال شد. پس از ورود همین صفحه را باز کنید.')};
+supabase.auth.onAuthStateChange((_e,session)=>{if(session){$('logged').classList.remove('hidden');$('login').classList.add('hidden');$('email').disabled=true;message('شما وارد شده‌اید. زمان نوبت را انتخاب کنید.')}});
+$('book').onclick=async()=>{if(!selected)return message('ابتدا خدمت را انتخاب کنید.');const {data:{user}}=await supabase.auth.getUser();if(!user)return message('ابتدا وارد شوید.');const when=$('when').value;if(!when)return message('تاریخ و ساعت را انتخاب کنید.');const {error}=await supabase.from('appointments').insert({user_id:user.id,service_id:selected.id,scheduled_at:new Date(when).toISOString(),notes:$('notes').value.trim()||null});message(error?error.message:'نوبت با موفقیت ثبت شد.');if(!error){$('notes').value='';$('when').value=''}};
+load();
+</script></body></html>
