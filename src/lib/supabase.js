@@ -7,6 +7,7 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 export async function fetchSpecialties() { const { data, error } = await supabase.from('specialties').select('id,name,slug,description').eq('is_active', true).order('name'); if (error) throw error; return data ?? []; }
 export async function fetchApprovedPsychologists() { const { data, error } = await supabase.from('psychologists').select('id,professional_title,bio,years_experience,therapy_methods,consultation_types,phone_price,phone_duration').eq('status', 'APPROVED').order('created_at'); if (error) throw error; return data ?? []; }
 export async function fetchAvailableSlots() { const { data, error } = await supabase.from('appointment_slots').select(`id,psychologist_id,starts_at,ends_at,duration_minutes,price,psychologists!inner (professional_title,years_experience,status)`).eq('status', 'AVAILABLE').eq('psychologists.status', 'APPROVED').gte('starts_at', new Date().toISOString()).order('starts_at').limit(50); if (error) throw error; return data ?? []; }
+export async function fetchServices() { const { data, error } = await supabase.from('services').select('id,name,description,duration_minutes,price,is_active,sort_order').eq('is_active', true).order('sort_order').order('created_at'); if (error) throw error; return data ?? []; }
 
 export async function requestCashPayment(slotId) {
   if (!slotId) throw new Error('slot_id_required');
@@ -19,7 +20,7 @@ export async function requestCashPayment(slotId) {
 
 export async function startAppointment(slotId) {
   if (!slotId) throw new Error('slot_id_required');
-  const { data: booking, error: bookingError } = await supabase.functions.invoke('payment-start', { body: { slot_id: slotId } });
+  const { data: booking, error: bookingError } = await supabase.functions.invoke('payment-start', { body: { slot_id: slotId, service_id: window.__selectedServiceId || null } });
   if (bookingError) throw bookingError;
   if (!booking?.ok || !booking?.appointment_id) throw new Error(booking?.error || 'booking_failed');
 
@@ -47,27 +48,12 @@ export async function startAppointmentPayment(appointmentId, gateway) { if (!app
 export async function fetchMyAppointments() { const { data, error } = await supabase.from('appointments').select('id,slot_id,status,gross_amount,currency,booked_at,confirmed_at,created_at,appointment_slots:slot_id(starts_at,ends_at,duration_minutes),psychologists:psychologist_id(professional_title)').order('created_at', { ascending: false }).limit(50); if (error) throw error; return data ?? []; }
 export async function fetchMyPayments(appointmentIds = []) { let query = supabase.from('payments').select('id,appointment_id,amount,currency,status,gateway,reference_number,paid_at,created_at').order('created_at', { ascending: false }).limit(100); if (appointmentIds.length) query = query.in('appointment_id', appointmentIds); const { data, error } = await query; if (error) throw error; return data ?? []; }
 
-// Email login (legacy helper kept for compatibility with existing flows).
 export async function sendLoginLink(email) { const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } }); if (error) throw error; }
-
-// Phone OTP flow: send a 6-digit SMS code, then verify it to create the session.
-export async function sendPhoneOtp(phone) {
-  const normalizedPhone = String(phone || '').trim();
-  if (!/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)) throw new Error('شماره موبایل معتبر نیست.');
-  const { error } = await supabase.auth.signInWithOtp({ phone: normalizedPhone });
-  if (error) throw error;
-}
-
-export async function verifyPhoneOtp(phone, token) {
-  const normalizedPhone = String(phone || '').trim();
-  const normalizedToken = String(token || '').trim();
-  if (!/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)) throw new Error('شماره موبایل معتبر نیست.');
-  if (!/^\d{6}$/.test(normalizedToken)) throw new Error('کد تأیید باید ۶ رقم باشد.');
-  const { data, error } = await supabase.auth.verifyOtp({ phone: normalizedPhone, token: normalizedToken, type: 'sms' });
-  if (error) throw error;
-  return data?.session || null;
-}
-
+export async function sendPhoneOtp(phone) { const normalizedPhone = String(phone || '').trim(); if (!/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)) throw new Error('شماره موبایل معتبر نیست.'); const { error } = await supabase.auth.signInWithOtp({ phone: normalizedPhone }); if (error) throw error; }
+export async function verifyPhoneOtp(phone, token) { const normalizedPhone = String(phone || '').trim(); const normalizedToken = String(token || '').trim(); if (!/^\+?[1-9]\d{7,14}$/.test(normalizedPhone)) throw new Error('شماره موبایل معتبر نیست.'); if (!/^\d{6}$/.test(normalizedToken)) throw new Error('کد تأیید باید ۶ رقم باشد.'); const { data, error } = await supabase.auth.verifyOtp({ phone: normalizedPhone, token: normalizedToken, type: 'sms' }); if (error) throw error; return data?.session || null; }
 export async function getCurrentSession() { const { data, error } = await supabase.auth.getSession(); if (error) throw error; return data.session; }
 export function subscribeToAuth(callback) { return supabase.auth.onAuthStateChange((_event, session) => callback(session)); }
 export async function signOutUser() { const { error } = await supabase.auth.signOut(); if (error) throw error; }
+
+// Services UI is mounted as a side effect so the existing booking/payment frontend remains intact.
+import './services-runtime';
