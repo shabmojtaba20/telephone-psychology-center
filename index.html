@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="مرکز مشاوره تلفنی روان؛ دسترسی ساده و امن به خدمات مشاوره روانشناختی." />
+    <title>مرکز مشاوره تلفنی روان</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      const path = window.location.pathname;
+      const isPaymentCallback = path.startsWith('/payment/callback/');
+      const isAdmin = path.startsWith('/admin');
+      import(isPaymentCallback ? '/src/payment-callback.jsx' : isAdmin ? '/src/admin-dashboard.jsx' : '/src/main.jsx');
+    </script>
+  </body>
+</html>
