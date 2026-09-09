@@ -2,5 +2,7 @@
   "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
   "name": "telephone-psychology-center",
   "compatibility_date": "2026-09-09",
-  "pages_build_output_dir": "."
+  "assets": {
+    "directory": "."
+  }
 }
