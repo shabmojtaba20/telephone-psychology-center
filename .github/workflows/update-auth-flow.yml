@@ -1,0 +1,44 @@
+name: Update auth flow
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          s=s.replace('<label>ایمیل</label><input id="loginEmail" type="email" placeholder="ایمیل شما"><label>رمز عبور</label>', '<label>ایمیل یا شماره موبایل</label><input id="loginEmail" type="text" inputmode="email" placeholder="ایمیل یا شماره موبایل"><label>رمز عبور</label>')
+
+          old="""$('loginBtn').onclick=async()=>{const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password)return showMsg('ایمیل و رمز عبور را وارد کنید.');const{error}=await s.auth.signInWithPassword({email,password});if(error)return showMsg(error.message);showMsg('ورود با موفقیت انجام شد.',true);setTimeout(async()=>{closeAuth();await updateAccount();if(afterAuth)$('booking').scrollIntoView({behavior:'smooth'})},500)};"""
+          new="""function normalizePhone(v){let x=(v||'').trim().replace(/[\\s-]/g,'');if(/^09\\d{9}$/.test(x))return '+98'+x.slice(1);if(/^9\\d{9}$/.test(x))return '+98'+x;if(/^\\+989\\d{9}$/.test(x))return x;return null}$('loginBtn').onclick=async()=>{const identifier=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!identifier||!password)return showMsg('ایمیل یا شماره موبایل و رمز عبور را وارد کنید.');let email=identifier;if(!identifier.includes('@')){const phone=normalizePhone(identifier);if(!phone)return showMsg('شماره موبایل معتبر نیست.');const{data,error}=await s.rpc('lookup_email_by_phone',{p_phone:phone});if(error||!data)return showMsg('کاربری با این شماره موبایل پیدا نشد.');email=data}const{error}=await s.auth.signInWithPassword({email,password});if(error)return showMsg('ایمیل/شماره موبایل یا رمز عبور صحیح نیست.');showMsg('ورود با موفقیت انجام شد.',true);setTimeout(async()=>{closeAuth();await updateAccount();if(afterAuth)$('booking').scrollIntoView({behavior:'smooth'})},500)};"""
+          if old not in s: raise SystemExit('login handler not found')
+          s=s.replace(old,new)
+
+          old2="""$('signupBtn').onclick=async()=>{const name=$('signupName').value.trim(),phone=$('signupPhone').value.trim(),email=$('signupEmail').value.trim(),password=$('signupPassword').value,password2=$('signupPassword2').value;if(!name||!email||!password)return showMsg('نام، ایمیل و رمز عبور الزامی است.');if(password.length<6)return showMsg('رمز عبور باید حداقل ۶ کاراکتر باشد.');if(password!==password2)return showMsg('تکرار رمز عبور صحیح نیست.');const{data,error}=await s.auth.signUp({email,password,options:{data:{full_name:name,phone},emailRedirectTo:location.href}});if(error)return showMsg(error.message);if(data.session){showMsg('ثبت‌نام و ورود با موفقیت انجام شد.',true);setTimeout(async()=>{closeAuth();await updateAccount()},500)}else showMsg('ثبت‌نام انجام شد. لینک تأیید به ایمیل شما ارسال شده است. پس از تأیید، وارد سایت شوید.',true)};"""
+          new2="""$('signupBtn').onclick=async()=>{const name=$('signupName').value.trim(),rawPhone=$('signupPhone').value.trim(),phone=normalizePhone(rawPhone),email=$('signupEmail').value.trim(),password=$('signupPassword').value,password2=$('signupPassword2').value;if(!name||!phone||!email||!password)return showMsg('نام، شماره موبایل، ایمیل و رمز عبور الزامی است.');if(password.length<6)return showMsg('رمز عبور باید حداقل ۶ کاراکتر باشد.');if(password!==password2)return showMsg('تکرار رمز عبور صحیح نیست.');const{data:existing}=await s.rpc('lookup_email_by_phone',{p_phone:phone});if(existing)return showMsg('این شماره موبایل قبلاً ثبت شده است.');const{data,error}=await s.auth.signUp({email,password,options:{data:{full_name:name,phone},emailRedirectTo:location.origin+'/'}});if(error)return showMsg(error.message);if(data.user){const{error:profileError}=await s.from('user_profiles').upsert({user_id:data.user.id,full_name:name,phone},{onConflict:'user_id'});if(profileError)return showMsg('ثبت‌نام انجام شد ولی ذخیره اطلاعات کاربری با خطا مواجه شد.');}if(data.session){showMsg('ثبت‌نام با موفقیت انجام شد. در حال انتقال به سایت…',true);setTimeout(()=>{location.href=location.origin+'/'},700)}else{showMsg('ثبت‌نام با موفقیت انجام شد. برای تکمیل فعال‌سازی، ایمیل خود را تأیید کنید.',true);setTimeout(()=>{location.href=location.origin+'/'},1200)}};"""
+          if old2 not in s: raise SystemExit('signup handler not found')
+          s=s.replace(old2,new2)
+
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit patched file
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix email or phone password login and signup redirect'
+          git push
