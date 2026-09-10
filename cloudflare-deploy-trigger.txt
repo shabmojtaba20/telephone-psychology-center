@@ -1,3 +1,4 @@
 Production deployment trigger for the current admin panel.
 Registration form: email optional; name, mobile, password and password confirmation required.
-Commit date: 2026-09-10
+Profile save fix: rely on Supabase auth trigger instead of client upsert.
+Commit date: 2026-09-10 12:00
