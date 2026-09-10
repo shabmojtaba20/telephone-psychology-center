@@ -1,7 +1,9 @@
-Production deployment trigger for the current admin panel.
+Production deployment trigger for the current website.
 Registration form: email optional; name, mobile, password and password confirmation required.
 Profile save fix: rely on Supabase auth trigger instead of client upsert.
 Services management panel added: add, edit, activate/deactivate and delete services.
 Payment flow added: appointment amount, pending payment state, secure ZarinPal request/verify Edge Functions.
 Card-to-card payment management added to admin panel: card settings, receipt review, approve/reject workflow.
-Deploy trigger: 2026-09-10 12:50
+Financial database tables added: center financial settings, invoices and finance transactions.
+IMPORTANT: publish the repository as the website's static assets; do not replace the Pages site with an unrelated Worker deployment.
+Deploy trigger: 2026-09-10 13:05
