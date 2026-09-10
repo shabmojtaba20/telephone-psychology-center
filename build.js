@@ -57,6 +57,61 @@ ${mobileMarker}
   fs.writeFileSync(indexFile, indexHtml, 'utf8');
 }
 
+// Logged-in user profile/logout controls in the public header.
+const profileMarker = '<!-- user-profile-ui -->';
+if (!indexHtml.includes(profileMarker)) {
+  const profileEnhancement = `
+${profileMarker}
+<style>
+#userProfileUi{display:none;align-items:center;gap:7px}
+#userProfileUi .profile-btn,#userProfileUi .logout-btn{border:0;border-radius:9px;padding:8px 10px;font:inherit;cursor:pointer}
+#userProfileUi .profile-btn{background:#f1f2ff;color:#4338ca;font-weight:700}
+#userProfileUi .logout-btn{background:#fee2e2;color:#991b1b}
+@media(max-width:700px){#userProfileUi{gap:4px}#userProfileUi .profile-btn,#userProfileUi .logout-btn{font-size:11px;padding:7px 7px}.account-guest{display:none!important}}
+</style>
+<script>
+(function(){
+  const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
+  const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
+  async function initUserUi(){
+    try{
+      const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const db=mod.createClient(SB_URL,SB_KEY);
+      const account=document.getElementById('accountBtn');
+      if(!account) return;
+      if(!document.getElementById('userProfileUi')){
+        const wrap=document.createElement('span');
+        wrap.id='userProfileUi';
+        wrap.innerHTML='<button type="button" class="profile-btn" id="profileBtn">👤 پروفایل</button><button type="button" class="logout-btn" id="logoutBtn">خروج</button>';
+        account.parentNode.insertBefore(wrap,account.nextSibling);
+      }
+      const wrap=document.getElementById('userProfileUi');
+      const profileBtn=document.getElementById('profileBtn');
+      const logoutBtn=document.getElementById('logoutBtn');
+      function render(session){
+        const logged=!!session;
+        account.style.display=logged?'none':'';
+        wrap.style.display=logged?'inline-flex':'none';
+        if(logged){
+          const name=session.user?.user_metadata?.full_name || session.user?.user_metadata?.name || session.user?.email || 'کاربر';
+          profileBtn.textContent='👤 '+(name.length>18?name.slice(0,18)+'…':name);
+        }
+      }
+      const {data}=await db.auth.getSession();
+      render(data.session);
+      db.auth.onAuthStateChange((_event,session)=>render(session));
+      profileBtn.onclick=()=>{ window.location.hash='profile'; window.dispatchEvent(new CustomEvent('open-user-profile')); };
+      logoutBtn.onclick=async()=>{await db.auth.signOut(); window.location.reload();};
+    }catch(e){console.warn('User profile UI:',e)}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initUserUi); else initUserUi();
+})();
+</script>
+`;
+  indexHtml = indexHtml.replace('</body>', profileEnhancement + '\n</body>');
+  fs.writeFileSync(indexFile, indexHtml, 'utf8');
+}
+
 const adminFile = path.join(root, 'admin-v4.html');
 if (fs.existsSync(adminFile)) {
   let html = fs.readFileSync(adminFile, 'utf8');
