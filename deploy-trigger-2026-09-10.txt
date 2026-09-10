@@ -1,0 +1,1 @@
+Deploy after signup auth fix. Email is required until phone auth is configured.
