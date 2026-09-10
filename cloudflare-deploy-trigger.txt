@@ -1,2 +1,3 @@
 Production deployment trigger for the current admin panel.
-Commit date: 2026-09-09
+Registration form: email optional; name, mobile, password and password confirmation required.
+Commit date: 2026-09-10
