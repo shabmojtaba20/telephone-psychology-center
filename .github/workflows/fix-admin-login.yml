@@ -1,0 +1,57 @@
+name: One-time admin login fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Remove duplicate admin login and add auth guard
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('admin-v4.html')
+          s = p.read_text(encoding='utf-8')
+
+          s, n = re.subn(
+              r'<div id="login" class="card login">.*?</div><div id="app" class="wrap hidden">',
+              '<div id="app" class="wrap">',
+              s, count=1, flags=re.S
+          )
+          if n != 1:
+              raise SystemExit(f'Expected one duplicate login block, found {n}')
+
+          guard = """async function bootAdmin(){try{const{data:{session}}=await sb.auth.getSession();if(!session){location.replace('/admin-login.html');return}const ok=await isAdmin();if(!ok){await sb.auth.signOut();location.replace('/admin-login.html');return}$('app').classList.remove('hidden');await load()}catch(e){console.error(e);await sb.auth.signOut();location.replace('/admin-login.html')}}$('logout').onclick=async()=>{await sb.auth.signOut();location.replace('/admin-login.html')};bootAdmin();"""
+
+          pattern = r"\$\('loginBtn'\)\.onclick=async\(\)=>\{.*?sb\.auth\.getSession\(\)\.then\(async\(\{data\}\)=>\{.*?\}\);</script>"
+          s, n = re.subn(pattern, guard + '</script>', s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit(f'Expected one old auth block, found {n}')
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Deploy fixed Pages site
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: telephone-psychology-center
+          directory: .
+
+      - name: Commit fix and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-admin-login.yml
+          git add admin-v4.html
+          git commit -m "fix: use single admin login flow"
+          git push
