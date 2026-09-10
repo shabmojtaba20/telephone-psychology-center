@@ -3,4 +3,5 @@ Registration form: email optional; name, mobile, password and password confirmat
 Profile save fix: rely on Supabase auth trigger instead of client upsert.
 Services management panel added: add, edit, activate/deactivate and delete services.
 Payment flow added: appointment amount, pending payment state, secure ZarinPal request/verify Edge Functions.
-Deploy trigger: 2026-09-10 12:35
+Card-to-card payment added: private receipt upload, admin review, approval/rejection and appointment confirmation.
+Deploy trigger: 2026-09-10 13:30
