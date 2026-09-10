@@ -9,4 +9,3 @@ if(!old.test(html)) throw new Error('signup handler not found');
 html = html.replace(old, replacement);
 fs.writeFileSync(file, html);
 console.log('Build completed successfully');
-`;
