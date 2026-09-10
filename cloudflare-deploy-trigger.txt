@@ -2,5 +2,5 @@ Production deployment trigger for the current admin panel.
 Registration form: email optional; name, mobile, password and password confirmation required.
 Profile save fix: rely on Supabase auth trigger instead of client upsert.
 Services management panel added: add, edit, activate/deactivate and delete services.
-Next stage: Iranian online payment gateway integration.
-Deploy trigger: 2026-09-10 12:20
+Payment flow added: appointment amount, pending payment state, secure ZarinPal request/verify Edge Functions.
+Deploy trigger: 2026-09-10 12:35
