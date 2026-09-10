@@ -152,8 +152,12 @@ ${marker}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initAdminUi); else initAdminUi();
 })();
 </script>
+<script src="/admin-access.js"></script>
 `;
     html = html.replace('</body>', enhancement + '\n</body>');
+    fs.writeFileSync(adminFile, html, 'utf8');
+  } else if (!html.includes('/admin-access.js')) {
+    html = html.replace('</body>', '<script src="/admin-access.js"></script>\n</body>');
     fs.writeFileSync(adminFile, html, 'utf8');
   }
 }
