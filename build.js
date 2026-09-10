@@ -158,4 +158,24 @@ ${marker}
   }
 }
 
+// Inject the full professional finance module into the restored professional admin panel.
+const professionalAdminFile = path.join(root, 'admin-professional.html');
+if (fs.existsSync(professionalAdminFile)) {
+  let html = fs.readFileSync(professionalAdminFile, 'utf8');
+  const marker = '<!-- professional-finance-module -->';
+  if (!html.includes(marker)) {
+    const enhancement = `
+${marker}
+<style>
+.finance-kpis .card{min-height:120px}.finance-kpis{margin-bottom:4px}
+#finance .actions{display:flex;gap:8px;flex-wrap:wrap}
+#finance .actions .btn{margin:0}
+</style>
+<script src="/finance-admin.js"></script>
+`;
+    html = html.replace('</body>', enhancement + '\n</body>');
+    fs.writeFileSync(professionalAdminFile, html, 'utf8');
+  }
+}
+
 console.log('Build completed successfully');
