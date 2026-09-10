@@ -1,0 +1,1 @@
+const fs=require('fs');const path=require('path');const file=path.join(__dirname,'education.html');if(fs.existsSync(file)){let html=fs.readFileSync(file,'utf8');if(!html.includes('/education-pay.js')){html=html.replace('</body>','<script src="/education-pay.js"></script>\n</body>');fs.writeFileSync(file,html,'utf8')}}console.log('Education module build step completed');
