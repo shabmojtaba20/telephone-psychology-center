@@ -1,0 +1,31 @@
+name: Fix user booking and login flow
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: ${{ !startsWith(github.event.head_commit.message, 'fix: repair user flow') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair index script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace(';loadServices();loadConsultants();loadPayment();updateBookingAuth();<script>\nasync function loadUserPaymentHistory', ';loadServices();loadConsultants();loadPayment();updateBookingAuth();\nasync function loadUserPaymentHistory')
+          s=s.replace(";$('paymentInfo').innerHTML=h||'<p>اطلاعات مالی برای نمایش ثبت نشده است.</p>';", ";")
+          s=s.replace('</script></script></body>', '</script></body>')
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: repair user flow'
+          git push
