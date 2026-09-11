@@ -24,4 +24,4 @@ jobs:
           directory: .
           branch: main
 
-# production deployment trigger
+# production deployment trigger - ZarinPal checkout
