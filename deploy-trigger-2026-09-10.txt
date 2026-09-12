@@ -1,1 +1,1 @@
-Trigger production deploy for Jalali calendar booking and contact icon upgrade. 2026-09-12
+Production deploy trigger: Jalali booking calendar, date-filtered sessions, and contact icon footer. 2026-09-12
