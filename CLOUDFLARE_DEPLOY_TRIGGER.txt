@@ -1,3 +1,3 @@
-Cloudflare production deployment trigger — 2026-09-12
+Cloudflare production deployment trigger — 2026-09-12 20:00
 
-Deploy latest main branch to production after role-aware admin panel update.
+Deploy latest main branch to production after fixing the Cloudflare Pages deployment path. The canonical production deployment is the GitHub Pages Action using cloudflare/pages-action@v1.
