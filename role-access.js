@@ -8,9 +8,9 @@
   async function init(){
     try{
       const client=create();
-      const {data:{session}}=await client.auth.getSession();
-      if(!session){location.replace('/admin-login.html');return;}
-      const {data:roles,error:rolesError}=await client.rpc('admin_get_user_roles');
+      const {data:{user},error:userError}=await client.auth.getUser();
+      if(userError||!user){location.replace('/admin-login.html');return;}
+      const {data:roles,error:rolesError}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
       if(rolesError) throw rolesError;
       if(!roles||!roles.length){await client.auth.signOut();location.replace('/admin-login.html?error=no-role');return;}
       const permissions=new Set(), roleNames=roles.map(r=>r.name).filter(Boolean);
