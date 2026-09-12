@@ -15,19 +15,37 @@ async function startZarinPalPayment(button) {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error('ابتدا وارد حساب کاربری شوید.');
 
-    const { data: order, error: orderError } = await supabase
+    // The legacy bridge is retained for the current homepage flow, but it must
+    // only select an order that still has pending appointments for this user.
+    const { data: orders, error: orderError } = await supabase
       .from('booking_orders')
       .select('id,total_amount,payment_status,created_at')
       .eq('user_id', user.id)
-      .in('payment_status', ['pending', 'unpaid'])
+      .eq('payment_status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(5);
 
-    if (orderError || !order) throw new Error('سفارش پرداختی پیدا نشد. ابتدا نوبت را ثبت کنید.');
-    if (String(order.payment_status).toLowerCase() === 'paid') throw new Error('این سفارش قبلاً پرداخت شده است.');
+    if (orderError || !orders?.length) throw new Error('سفارش پرداختی پیدا نشد. ابتدا نوبت را ثبت کنید.');
 
-    const { data, error } = await supabase.functions.invoke('zarinpal-create-payment', {
+    let order = null;
+    for (const candidate of orders) {
+      const { data: pendingAppointments, error: appointmentError } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('booking_order_id', candidate.id)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .eq('payment_status', 'pending')
+        .limit(1);
+      if (!appointmentError && pendingAppointments?.length) {
+        order = candidate;
+        break;
+      }
+    }
+
+    if (!order) throw new Error('سفارش قابل پرداختی پیدا نشد. لطفاً دوباره نوبت را ثبت کنید.');
+
+    const { data, error } = await supabase.functions.invoke('zarinpal-request', {
       body: { order_id: order.id },
     });
     if (error) throw new Error(error.message || 'اتصال به درگاه ناموفق بود.');
