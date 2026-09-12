@@ -1,4 +1,4 @@
-name: Wire payment bridge
+name: Wire booking v2
 
 on:
   push:
@@ -12,20 +12,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject payment bridge
+      - name: Activate booking v2
         shell: python
         run: |
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          marker = '<script type="module" src="/payment-bridge.js"></script>'
-          if marker not in s:
-              s = s.replace('</body>', marker + '</body>')
+          legacy = '<script type="module" src="/payment-bridge.js"></script>'
+          modern = '<script type="module" src="/booking-v2.js"></script>'
+          changed = False
+          if legacy in s:
+              s = s.replace(legacy, '')
+              changed = True
+              print('legacy payment bridge removed')
+          if modern not in s:
+              s = s.replace('</body>', modern + '</body>')
+              changed = True
+              print('booking v2 injected')
+          if changed:
               p.write_text(s, encoding='utf-8')
-              print('payment bridge injected')
           else:
-              print('payment bridge already present')
-      - name: Commit injection
+              print('booking v2 already active')
+      - name: Commit wiring
         shell: bash
         run: |
           if git diff --quiet -- index.html; then
@@ -35,5 +43,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'feat: connect booking payment button'
+          git commit -m 'fix: activate booking v2 on homepage'
           git push
