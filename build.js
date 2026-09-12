@@ -17,39 +17,27 @@ if (!indexHtml.includes(profileMarker)) {
   fs.writeFileSync(indexFile, indexHtml, 'utf8');
 }
 
-// Public entry to the learning center.
 const educationLinkMarker = '<!-- education-center-link -->';
 if (!indexHtml.includes(educationLinkMarker)) {
   const educationLink = `\n${educationLinkMarker}<a class="btn" href="/education.html" style="text-decoration:none">📚 مطالب آموزشی و کارگاه‌ها</a>`;
   indexHtml = indexHtml.replace('</body>', educationLink + '\n</body>');
-  fs.writeFileSync(indexFile, indexHtml, 'utf8');
+  fs.writeFileSync(indexFile, educationLink + '\n</body>');
 }
 
 function injectScript(filePath, marker, scripts) {
   if (!fs.existsSync(filePath)) return;
   let html = fs.readFileSync(filePath, 'utf8');
-  if (!html.includes(marker)) {
-    html = html.replace('</body>', `\n${marker}\n${scripts}\n</body>`);
-  } else {
-    for (const src of scripts.matchAll(/<script src="([^"]+)"><\/script>/g)) {
-      if (!html.includes(src[1])) html = html.replace('</body>', `<script src="${src[1]}"></script>\n</body>`);
-    }
-  }
-  fs.writeFileSync(filePath, html, 'utf8');
+  if (!html.includes(marker)) html = html.replace('</body>', `\n${marker}\n${scripts}\n</body>`);
+  else for (const src of scripts.matchAll(/<script src="([^"]+)"><\/script>/g)) if (!html.includes(src[1])) html = html.replace('</body>', `<script src="${src[1]}"></script>\n</body>`);
+  fs.writeFileSync(filePath,html,'utf8');
 }
 
 const adminFile = path.join(root, 'admin-v4.html');
 if (fs.existsSync(adminFile)) {
   let html = fs.readFileSync(adminFile, 'utf8');
   const marker = '<!-- admin-ui-enhancements -->';
-  if (!html.includes(marker)) {
-    const enhancement = `\n${marker}\n<style>#adminUserBar{position:fixed;top:14px;right:270px;z-index:30;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,.08);font-size:13px}#adminUserBar .user-name{font-weight:700;color:#172033}#adminUserBar .back-site{border:0;border-radius:8px;background:#4f46e5;color:#fff;padding:7px 11px;text-decoration:none;cursor:pointer}@media(max-width:700px){#adminUserBar{position:sticky;top:0;right:auto;margin:8px 0;justify-content:space-between;z-index:25}.main{padding-top:8px}}</style>\n<script>(function(){const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';function client(){return window.supabase.createClient(SB_URL,SB_KEY)}async function initAdminUi(){try{const dbx=client();const {data:{session}}=await dbx.auth.getSession();if(!session)return;let displayName=session.user?.user_metadata?.full_name||session.user?.user_metadata?.name||'';if(!displayName){const r=await dbx.from('user_profiles').select('full_name').eq('user_id',session.user.id).maybeSingle();if(!r.error)displayName=r.data?.full_name||''}if(!displayName)displayName=session.user?.email||'مدیر';if(document.getElementById('adminUserBar'))return;const bar=document.createElement('div');bar.id='adminUserBar';bar.innerHTML='<span>👤 <span class="user-name"></span></span><a class="back-site" href="/">↩ بازگشت به سایت</a>';bar.querySelector('.user-name').textContent=displayName;document.body.appendChild(bar)}catch(e){console.warn('Admin UI enhancement:',e)}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAdminUi);else initAdminUi()})();</script>\n<script src="/admin-access.js"></script>\n<script src="/finance-admin.js"></script>\n<script src="/admin-education.js"></script>`;
-    html = html.replace('</body>', enhancement + '\n</body>');
-  } else {
-    if(!html.includes('/admin-access.js')) html=html.replace('</body>','<script src="/admin-access.js"></script>\n</body>');
-    if(!html.includes('/finance-admin.js')) html=html.replace('</body>','<script src="/finance-admin.js"></script>\n</body>');
-    if(!html.includes('/admin-education.js')) html=html.replace('</body>','<script src="/admin-education.js"></script>\n</body>');
-  }
+  const enhancement = `\n${marker}\n<style>#adminUserBar{position:fixed;top:14px;right:270px;z-index:30;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,.08);font-size:13px}#adminUserBar .user-name{font-weight:700;color:#172033}#adminUserBar .back-site{border:0;border-radius:8px;background:#4f46e5;color:#fff;padding:7px 11px;text-decoration:none;cursor:pointer}@media(max-width:700px){#adminUserBar{position:sticky;top:0;right:auto;margin:8px 0;justify-content:space-between;z-index:25}.main{padding-top:8px}}</style>\n<script>(function(){const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';function client(){return window.supabase.createClient(SB_URL,SB_KEY)}async function initAdminUi(){try{const dbx=client();const {data:{session}}=await dbx.auth.getSession();if(!session)return;let displayName=session.user?.user_metadata?.full_name||session.user?.user_metadata?.name||'';if(!displayName){const r=await dbx.from('user_profiles').select('full_name').eq('user_id',session.user.id).maybeSingle();if(!r.error)displayName=r.data?.full_name||''}if(!displayName)displayName=session.user?.email||'مدیر';if(document.getElementById('adminUserBar'))return;const bar=document.createElement('div');bar.id='adminUserBar';bar.innerHTML='<span>👤 <span class="user-name"></span></span><a class="back-site" href="/">↩ بازگشت به سایت</a>';bar.querySelector('.user-name').textContent=displayName;document.body.appendChild(bar)}catch(e){console.warn('Admin UI enhancement:',e)}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAdminUi);else initAdminUi()})();</script>\n<script src="/admin-access.js"></script>\n<script src="/finance-admin.js"></script>\n<script src="/admin-education.js"></script>`;
+  if (!html.includes(marker)) html=html.replace('</body>',enhancement+'\n</body>'); else { for (const src of ['/admin-access.js','/finance-admin.js','/admin-education.js']) if(!html.includes(src)) html=html.replace('</body>',`<script src="${src}"></script>\n</body>`); }
   fs.writeFileSync(adminFile,html,'utf8');
 }
 
@@ -57,11 +45,14 @@ const professionalAdminFile = path.join(root, 'admin-professional.html');
 if (fs.existsSync(professionalAdminFile)) {
   let html = fs.readFileSync(professionalAdminFile, 'utf8');
   const marker = '<!-- professional-finance-module -->';
+  const scripts = '<script src="/finance-admin.js"></script>\n<script src="/admin-education.js"></script>\n<script src="/role-access.js"></script>';
   if (!html.includes(marker)) {
-    const enhancement = `\n${marker}\n<style>.finance-kpis .card{min-height:120px}.finance-kpis{margin-bottom:4px}#finance .actions{display:flex;gap:8px;flex-wrap:wrap}#finance .actions .btn{margin:0}</style>\n<script src="/finance-admin.js"></script>\n<script src="/admin-education.js"></script>`;
+    const enhancement = `\n${marker}\n<style>.finance-kpis .card{min-height:120px}.finance-kpis{margin-bottom:4px}#finance .actions{display:flex;gap:8px;flex-wrap:wrap}#finance .actions .btn{margin:0}</style>\n${scripts}`;
     html = html.replace('</body>', enhancement + '\n</body>');
   } else {
+    if(!html.includes('/finance-admin.js')) html=html.replace('</body>','<script src="/finance-admin.js"></script>\n</body>');
     if(!html.includes('/admin-education.js')) html=html.replace('</body>','<script src="/admin-education.js"></script>\n</body>');
+    if(!html.includes('/role-access.js')) html=html.replace('</body>','<script src="/role-access.js"></script>\n</body>');
   }
   fs.writeFileSync(professionalAdminFile, html, 'utf8');
 }
