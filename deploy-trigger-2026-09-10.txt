@@ -1,1 +1,1 @@
-Trigger production deploy for Jalali booking calendar and 30-minute session generation. 2026-09-12
+Trigger production deploy for Jalali calendar booking and contact icon upgrade. 2026-09-12
