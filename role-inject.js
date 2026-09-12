@@ -2,8 +2,14 @@ const fs=require('fs');
 const path=require('path');
 const root=__dirname;
 const roleScript='<script src="/role-access.js"></script>';
+const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const adminPath=path.join(root,'admin-professional.html');
-if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');if(!html.includes(roleScript))html=html.replace('</body>',`\n${roleScript}\n</body>`);fs.writeFileSync(adminPath,html,'utf8');}
+if(fs.existsSync(adminPath)){
+ let html=fs.readFileSync(adminPath,'utf8');
+ if(!html.includes(roleScript))html=html.replace('</body>',`\n${roleScript}\n</body>`);
+ if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
+ fs.writeFileSync(adminPath,html,'utf8');
+}
 const loginPath=path.join(root,'admin-login.html');
 if(fs.existsSync(loginPath)){
  let html=fs.readFileSync(loginPath,'utf8');
