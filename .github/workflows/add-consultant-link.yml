@@ -1,4 +1,4 @@
-name: Add consultant panel link
+name: Add consultant and finance panel links
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Add consultant panel link
+      - name: Add consultant and finance panel links
         shell: bash
         run: |
           python - <<'PY'
@@ -23,11 +23,19 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
           marker = '<a class="btn" href="/admin.html">پنل مدیریت</a>'
-          link = '<a class="btn" href="/consultant-panel.html">پنل مشاور</a>'
-          if link not in s:
-              if marker not in s:
-                  raise SystemExit('Admin panel link marker not found')
-              s = s.replace(marker, marker + link, 1)
+          consultant = '<a class="btn" href="/consultant-panel.html">پنل مشاور</a>'
+          finance = '<a class="btn" href="/admin-v5.html">پنل مالی</a>'
+          if marker not in s:
+              raise SystemExit('Admin panel link marker not found')
+          changed = False
+          if consultant not in s:
+              s = s.replace(marker, marker + consultant, 1)
+              changed = True
+          if finance not in s:
+              anchor = consultant if consultant in s else marker
+              s = s.replace(anchor, anchor + finance, 1)
+              changed = True
+          if changed:
               p.write_text(s, encoding='utf-8')
           PY
       - name: Commit homepage change
@@ -39,5 +47,5 @@ jobs:
             echo "No homepage change needed"
             exit 0
           fi
-          git commit -m "feat: add consultant panel link to homepage"
+          git commit -m "feat: add consultant and finance panel links to homepage"
           git push
