@@ -12,13 +12,13 @@ async function startZarinPalPayment(button) {
   button.textContent = 'در حال اتصال به درگاه…';
 
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) throw new Error('ابتدا وارد حساب کاربری شوید.');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) throw new Error('ابتدا وارد حساب کاربری شوید.');
 
     const { data: order, error: orderError } = await supabase
       .from('booking_orders')
       .select('id,total_amount,payment_status,created_at')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .in('payment_status', ['pending', 'unpaid'])
       .order('created_at', { ascending: false })
       .limit(1)
