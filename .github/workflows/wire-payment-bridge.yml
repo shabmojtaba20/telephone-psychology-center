@@ -1,4 +1,4 @@
-name: Wire booking v2
+name: Wire booking and payment bridges
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Activate booking v2
+      - name: Activate booking and card payment bridges
         shell: python
         run: |
           from pathlib import Path
@@ -20,6 +20,7 @@ jobs:
           s = p.read_text(encoding='utf-8')
           legacy = '<script type="module" src="/payment-bridge.js"></script>'
           modern = '<script type="module" src="/booking-v2.js"></script>'
+          card = '<script type="module" src="/card-payment-bridge.js"></script>'
           changed = False
           if legacy in s:
               s = s.replace(legacy, '')
@@ -29,10 +30,14 @@ jobs:
               s = s.replace('</body>', modern + '</body>')
               changed = True
               print('booking v2 injected')
+          if card not in s:
+              s = s.replace('</body>', card + '</body>')
+              changed = True
+              print('card payment bridge injected')
           if changed:
               p.write_text(s, encoding='utf-8')
           else:
-              print('booking v2 already active')
+              print('all bridges already active')
       - name: Commit wiring
         shell: bash
         run: |
@@ -43,5 +48,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'fix: activate booking v2 on homepage'
+          git commit -m 'feat: activate card-to-card payment on booking'
           git push
