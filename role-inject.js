@@ -2,15 +2,25 @@ const fs=require('fs');
 const path=require('path');
 const root=__dirname;
 const roleScript='<script src="/role-access.js"></script>';
+const roleSwitcher='<script src="/role-switcher.js"></script>';
 const routeGuard='<script src="/admin-route-guard.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
  let html=fs.readFileSync(adminPath,'utf8');
  if(!html.includes(roleScript))html=html.replace('</body>',`\n${roleScript}\n</body>`);
+ if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
  if(!html.includes(routeGuard))html=html.replace('</body>',`\n${routeGuard}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
+}
+for(const file of ['admin-v5.html','consultant-panel.html']){
+ const p=path.join(root,file);
+ if(fs.existsSync(p)){
+  let html=fs.readFileSync(p,'utf8');
+  if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
+  fs.writeFileSync(p,html,'utf8');
+ }
 }
 const loginPath=path.join(root,'admin-login.html');
 if(fs.existsSync(loginPath)){
@@ -23,4 +33,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing injected');
+console.log('Role routing and multi-role switcher injected');
