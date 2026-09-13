@@ -4,6 +4,7 @@ const root=__dirname;
 const roleScript='<script src="/role-access.js"></script>';
 const roleSwitcher='<script src="/role-switcher.js"></script>';
 const routeGuard='<script src="/admin-route-guard.js"></script>';
+const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
@@ -11,6 +12,7 @@ if(fs.existsSync(adminPath)){
  if(!html.includes(roleScript))html=html.replace('</body>',`\n${roleScript}\n</body>`);
  if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
  if(!html.includes(routeGuard))html=html.replace('</body>',`\n${routeGuard}\n</body>`);
+ if(!html.includes(panelIntegration))html=html.replace('</body>',`\n${panelIntegration}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
@@ -32,4 +34,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing and multi-role switcher injected');
+console.log('Role routing, multi-role switcher and specialist-panel integration injected');
