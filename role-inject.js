@@ -5,6 +5,7 @@ const roleScript='<script src="/role-access.js"></script>';
 const roleSwitcher='<script src="/role-switcher.js"></script>';
 const routeGuard='<script src="/admin-route-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
+const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
@@ -13,6 +14,7 @@ if(fs.existsSync(adminPath)){
  if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
  if(!html.includes(routeGuard))html=html.replace('</body>',`\n${routeGuard}\n</body>`);
  if(!html.includes(panelIntegration))html=html.replace('</body>',`\n${panelIntegration}\n</body>`);
+ if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
@@ -21,6 +23,7 @@ for(const file of ['admin-v5.html','consultant-panel.html']){
  if(fs.existsSync(p)){
   let html=fs.readFileSync(p,'utf8');
   if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
+  if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
   fs.writeFileSync(p,html,'utf8');
  }
 }
