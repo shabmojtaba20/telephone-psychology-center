@@ -27,9 +27,8 @@ if(fs.existsSync(loginPath)){
  let html=fs.readFileSync(loginPath,'utf8');
  const marker='<!-- role-login-routing -->';
  if(!html.includes(marker)){
-  const helper=`\n${marker}<script>async function redirectByRole(){try{const{data:{user}}=await sb.auth.getUser();if(!user){location.replace('/admin-login.html');return}const{data:roles,error}=await sb.rpc('admin_get_user_roles');if(error)throw error;if(!roles?.length){await sb.auth.signOut();throw new Error('این حساب نقش مدیریتی ندارد.')}location.replace('/admin-professional.html?v='+Date.now())}catch(e){msg.className='msg err';msg.textContent=e.message||'تشخیص نقش انجام نشد.';btn.disabled=false}}</script>`;
+  const helper=`\n${marker}<script>async function redirectByRole(){try{const{data:{user}}=await sb.auth.getUser();if(!user){location.replace('/admin-login.html');return}const{data:roles,error}=await sb.rpc('admin_get_user_roles',{p_user_id:user.id});if(error)throw error;if(!roles?.length){await sb.auth.signOut();throw new Error('این حساب نقش مدیریتی ندارد.')}location.replace('/admin-professional.html?v='+Date.now())}catch(e){msg.className='msg err';msg.textContent=e.message||'تشخیص نقش انجام نشد.';btn.disabled=false}}</script>`;
   html=html.replace('</body>',helper+'\n</body>');
-  html=html.replace("location.replace('/admin-professional.html?v='+Date.now())","setTimeout(redirectByRole,0)");
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
