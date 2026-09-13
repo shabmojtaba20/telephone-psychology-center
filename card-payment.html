@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پرداخت کارت‌به‌کارت | مرکز مشاوره تلفنی روان</title>
+<style>
+body{margin:0;font-family:Tahoma,Arial;background:#f4f7fb;color:#172033}.wrap{width:min(760px,calc(100% - 28px));margin:35px auto}.card{background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:22px;box-shadow:0 8px 28px #10182812;margin-bottom:15px}.brand{font-weight:900;font-size:20px}.muted{color:#667085;font-size:13px}.amount{font-size:28px;font-weight:900;color:#4338ca}.bank{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.item b{display:block;margin-bottom:4px}.copy{border:1px solid #d9dee8;background:#fff;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit}.btn{border:0;border-radius:10px;padding:11px 16px;background:#4f46e5;color:#fff;cursor:pointer;font:inherit}.btn:disabled{opacity:.55;cursor:not-allowed}.msg{padding:11px;border-radius:10px;margin-top:12px}.ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#991b1b}.hint{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px;color:#854d0e}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-weight:700;margin-top:12px}input[type=text],input[type=file]{width:100%;box-sizing:border-box;padding:11px;border:1px solid #d6dbe5;border-radius:10px;margin-top:6px;font:inherit}input[type=file]{background:#fff}.actions{display:flex;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}.back{color:#4338ca;text-decoration:none}.hidden{display:none!important}@media(max-width:600px){.bank,.row{grid-template-columns:1fr}.amount{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="brand">🧠 مرکز مشاوره تلفنی روان</div>
+    <p class="muted">پرداخت کارت‌به‌کارت نوبت</p>
+    <div id="loading">در حال دریافت اطلاعات سفارش…</div>
+    <div id="content" class="hidden">
+      <div class="item"><b>مبلغ قابل پرداخت</b><span id="amount" class="amount">—</span> تومان</div>
+      <div class="bank" style="margin-top:12px">
+        <div class="item"><b>بانک</b><span id="bankName">—</span></div>
+        <div class="item"><b>صاحب کارت</b><span id="cardHolder">—</span></div>
+        <div class="item" style="grid-column:1/-1"><b>شماره کارت</b><span id="cardNumber">—</span> <button class="copy" id="copyCard">کپی</button></div>
+      </div>
+      <div class="hint" style="margin-top:14px" id="instructions">پس از کارت‌به‌کارت، کد پیگیری را وارد کنید و در صورت تمایل تصویر رسید را بارگذاری کنید.</div>
+      <div class="row">
+        <label>کد پیگیری انتقال *<input id="tracking" type="text" maxlength="80" placeholder="کد پیگیری بانک/اپلیکیشن"></label>
+        <label>۴ رقم آخر کارت پرداخت‌کننده<input id="last4" type="text" inputmode="numeric" maxlength="4" placeholder="مثلاً ۱۲۳۴"></label>
+      </div>
+      <label>تصویر یا PDF رسید (اختیاری)<input id="receipt" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"></label>
+      <div id="msg"></div>
+      <div class="actions"><button class="btn" id="submit">ثبت رسید و ارسال برای بررسی مالی</button><a class="back" href="/">بازگشت به سایت</a></div>
+    </div>
+  </div>
+</div>
+<script type="module">
+import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const sb=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX');
+const $=id=>document.getElementById(id),money=n=>Number(n||0).toLocaleString('fa-IR');
+let order=null,user=null;
+function msg(t,ok=false){$('msg').className='msg '+(ok?'ok':'err');$('msg').textContent=t}
+async function init(){
+  const{data:{user:u}}=await sb.auth.getUser();user=u;
+  if(!user){$('loading').textContent='برای پرداخت ابتدا وارد حساب کاربری شوید.';return}
+  const orderId=new URLSearchParams(location.search).get('order_id');
+  let q=sb.from('booking_orders').select('id,total_amount,payment_status,service_id,consultant_id,created_at').eq('user_id',user.id).eq('payment_status','pending');
+  if(orderId)q=q.eq('id',orderId);else q=q.order('created_at',{ascending:false}).limit(1);
+  const{data,error}=await q.maybeSingle();
+  if(error||!data){$('loading').textContent='سفارش قابل پرداخت پیدا نشد. لطفاً ابتدا نوبت را ثبت کنید.';return}
+  order=data;
+  const{data:settings,error:se}=await sb.rpc('get_public_card_payment_settings');
+  const cfg=Array.isArray(settings)?settings[0]:settings;
+  if(se||!cfg?.card_number){$('loading').textContent='پرداخت کارت‌به‌کارت در حال حاضر فعال نیست.';return}
+  $('amount').textContent=money(order.total_amount);$('bankName').textContent=cfg.bank_name||'—';$('cardHolder').textContent=cfg.card_holder||'—';$('cardNumber').textContent=cfg.card_number||'—';$('instructions').textContent=cfg.instructions||'پس از کارت‌به‌کارت، کد پیگیری را وارد کنید و رسید را برای بررسی مدیر مالی ارسال کنید.';
+  $('copyCard').onclick=async()=>{try{await navigator.clipboard.writeText(cfg.card_number);$('copyCard').textContent='کپی شد ✓';setTimeout(()=>$('copyCard').textContent='کپی',1500)}catch{msg('کپی شماره کارت انجام نشد؛ شماره را دستی وارد کنید.')}};
+  $('content').classList.remove('hidden');$('loading').classList.add('hidden');
+}
+$('submit').onclick=async()=>{
+  if(!order||!user)return;
+  const tracking=$('tracking').value.trim(),last4=$('last4').value.trim(),file=$('receipt').files[0];
+  if(!tracking)return msg('کد پیگیری کارت‌به‌کارت را وارد کنید.');
+  if(last4&&!/^\d{4}$/.test(last4))return msg('۴ رقم آخر کارت باید دقیقاً چهار رقم باشد.');
+  const b=$('submit');b.disabled=true;b.textContent='در حال ثبت رسید…';
+  try{
+    let path=null;
+    if(file){
+      if(file.size>5*1024*1024)throw new Error('حجم رسید نباید بیشتر از ۵ مگابایت باشد.');
+      const ext=(file.name.split('.').pop()||'bin').toLowerCase();
+      path=user.id+'/'+order.id+'-'+crypto.randomUUID()+'.'+ext;
+      const{error}=await sb.storage.from('payment-receipts').upload(path,file,{upsert:false,contentType:file.type||undefined});
+      if(error)throw error;
+    }
+    const{data,error}=await sb.rpc('submit_card_payment_for_order',{p_order_id:order.id,p_tracking_code:tracking,p_payer_card_last4:last4||null,p_receipt_path:path});
+    if(error)throw error;
+    msg('رسید با موفقیت ثبت شد و برای بررسی مدیر مالی ارسال گردید. پس از تأیید، وضعیت نوبت و صورتحساب شما به‌صورت خودکار به‌روزرسانی می‌شود.',true);b.textContent='رسید ثبت شد ✓';
+  }catch(e){msg(e?.message||'ثبت رسید انجام نشد.');b.disabled=false;b.textContent='ثبت رسید و ارسال برای بررسی مالی'}
+};
+init();
+</script>
+</body></html>
