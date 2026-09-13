@@ -7,6 +7,7 @@ const routeGuard='<script src="/admin-route-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
+const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
  let html=fs.readFileSync(adminPath,'utf8');
@@ -27,6 +28,12 @@ for(const file of ['admin-v5.html','consultant-panel.html']){
   fs.writeFileSync(p,html,'utf8');
  }
 }
+const indexPath=path.join(root,'index.html');
+if(fs.existsSync(indexPath)){
+ let html=fs.readFileSync(indexPath,'utf8');
+ if(!html.includes('homepage-role-login.js'))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
+ fs.writeFileSync(indexPath,html,'utf8');
+}
 const loginPath=path.join(root,'admin-login.html');
 if(fs.existsSync(loginPath)){
  let html=fs.readFileSync(loginPath,'utf8');
@@ -37,4 +44,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing, multi-role switcher and specialist-panel integration injected');
+console.log('Role routing, multi-role switcher, specialist-panel integration and homepage role login injected');
