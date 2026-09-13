@@ -3,7 +3,7 @@
   const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
   const ROLE_META={
     super_admin:{title:'مدیر ارشد',icon:'🛡️',route:'/admin-professional.html'},
-    finance_manager:{title:'مدیر مالی',icon:'💰',route:'/admin-v5.html'},
+    finance_manager:{title:'مدیر مالی',icon:'💰',route:'/admin-professional.html'},
     consultant_manager:{title:'مدیر مشاوران',icon:'👨‍⚕️',route:'/admin-professional.html'},
     appointment_manager:{title:'مدیر نوبت‌ها',icon:'📅',route:'/admin-professional.html'},
     content_manager:{title:'مدیر محتوا',icon:'📢',route:'/admin-professional.html'}
