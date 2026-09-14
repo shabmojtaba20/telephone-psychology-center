@@ -17,14 +17,14 @@ const mediaHome='<script src="/homepage-media.js"></script>';
 const homepage='<script src="/stage7-homepage.js"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
+const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
  let html=fs.readFileSync(adminPath,'utf8');
  for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);
- if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
- if(!html.includes('stage7-homepage.css'))html=html.replace('</head>',`\n${homepageCss}\n</head>`);
+ for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
 const consultantPath=path.join(root,'consultant-panel-professional.html');
@@ -66,4 +66,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Admin routing, role switcher, consultant AI, media manager, branding/theme, Stage 7 professional homepage manager, live preview, image upload, drag/drop ordering, dynamic homepage and gallery injected');
+console.log('Admin routing, role switcher, consultant AI, media manager, branding/theme, Stage 7 professional homepage editor, live preview, image upload, drag/drop ordering, dynamic homepage and gallery injected');
