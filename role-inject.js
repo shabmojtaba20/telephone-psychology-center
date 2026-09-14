@@ -6,6 +6,7 @@ const roleSwitcher='<script src="/role-switcher.js"></script>';
 const routeGuard='<script src="/admin-route-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
+const consultantAi='<script src="/consultant-ai-summary.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
@@ -18,6 +19,12 @@ if(fs.existsSync(adminPath)){
  if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
+}
+const consultantPath=path.join(root,'consultant-panel-professional.html');
+if(fs.existsSync(consultantPath)){
+ let html=fs.readFileSync(consultantPath,'utf8');
+ if(!html.includes('consultant-ai-summary.js'))html=html.replace('</body>',`\n${consultantAi}\n</body>`);
+ fs.writeFileSync(consultantPath,html,'utf8');
 }
 for(const file of ['admin-v5.html','consultant-panel.html']){
  const p=path.join(root,file);
@@ -44,4 +51,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing, multi-role switcher, specialist-panel integration and homepage role login injected');
+console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary and homepage role login injected');
