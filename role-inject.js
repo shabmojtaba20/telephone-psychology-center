@@ -7,25 +7,22 @@ const routeGuard='<script src="/admin-route-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
-const mediaShowcase='<script src="/media-showcase.js"></script>';
+const mediaUi='<script src="/stage5-media-ui.js"></script>';
+const mediaHome='<script src="/homepage-media.js"></script>';
+const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
  let html=fs.readFileSync(adminPath,'utf8');
- if(!html.includes(roleScript))html=html.replace('</body>',`\n${roleScript}\n</body>`);
- if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
- if(!html.includes(routeGuard))html=html.replace('</body>',`\n${routeGuard}\n</body>`);
- if(!html.includes(panelIntegration))html=html.replace('</body>',`\n${panelIntegration}\n</body>`);
- if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
- if(!html.includes(mediaShowcase))html=html.replace('</body>',`\n${mediaShowcase}\n</body>`);
+ for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
 const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){
  let html=fs.readFileSync(consultantPath,'utf8');
- if(!html.includes('consultant-ai-summary.js'))html=html.replace('</body>',`\n${consultantAi}\n</body>`);
+ if(!html.includes(consultantAi))html=html.replace('</body>',`\n${consultantAi}\n</body>`);
  fs.writeFileSync(consultantPath,html,'utf8');
 }
 for(const file of ['admin-v5.html','consultant-panel.html']){
@@ -40,8 +37,9 @@ for(const file of ['admin-v5.html','consultant-panel.html']){
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){
  let html=fs.readFileSync(indexPath,'utf8');
- if(!html.includes('homepage-role-login.js'))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
- if(!html.includes(mediaShowcase))html=html.replace('</body>',`\n${mediaShowcase}\n</body>`);
+ if(!html.includes(homepageRoleLogin))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
+ if(!html.includes(mediaHome))html=html.replace('</body>',`\n${mediaHome}\n</body>`);
+ if(!html.includes('stage5-media.css'))html=html.replace('</head>',`\n${mediaCss}\n</head>`);
  fs.writeFileSync(indexPath,html,'utf8');
 }
 const loginPath=path.join(root,'admin-login.html');
@@ -54,4 +52,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary, media showcase and homepage role login injected');
+console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary, Stage 5 media manager, homepage slideshow and visual appearance controls injected');
