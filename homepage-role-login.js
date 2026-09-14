@@ -38,4 +38,15 @@
       }
     },true);
   });
+
+  // لینک‌های دسترسی حرفه‌ای در فوتر صفحه اصلی
+  wait(function(){
+    const footer=document.querySelector('footer.footer');
+    if(!footer || footer.querySelector('[data-footer-panels]')) return;
+    const box=document.createElement('div');
+    box.setAttribute('data-footer-panels','1');
+    box.style.cssText='margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
+    box.innerHTML='<a href="/admin-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#5b5bd6;color:#fff;text-decoration:none;font-weight:700">🔐 ورود به پنل مدیریت</a><a href="/consultant-panel-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">👨‍⚕️ پنل مشاور</a>';
+    footer.querySelector('.c')?.appendChild(box);
+  });
 })();
