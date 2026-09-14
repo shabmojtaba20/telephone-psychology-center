@@ -8,6 +8,7 @@ const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
 const mediaUi='<script src="/stage5-media-ui.js"></script>';
+const branding='<script src="/stage5-branding.js"></script>';
 const mediaHome='<script src="/homepage-media.js"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
@@ -15,7 +16,7 @@ const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){
  let html=fs.readFileSync(adminPath,'utf8');
- for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);
+ for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi,branding])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
@@ -39,6 +40,7 @@ if(fs.existsSync(indexPath)){
  let html=fs.readFileSync(indexPath,'utf8');
  if(!html.includes(homepageRoleLogin))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
  if(!html.includes(mediaHome))html=html.replace('</body>',`\n${mediaHome}\n</body>`);
+ if(!html.includes(branding))html=html.replace('</body>',`\n${branding}\n</body>`);
  if(!html.includes('stage5-media.css'))html=html.replace('</head>',`\n${mediaCss}\n</head>`);
  fs.writeFileSync(indexPath,html,'utf8');
 }
@@ -52,4 +54,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary, Stage 5 media manager, homepage slideshow and visual appearance controls injected');
+console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary, Stage 5 media manager, dynamic center branding/logo, homepage slideshow and visual appearance controls injected');
