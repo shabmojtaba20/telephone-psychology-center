@@ -13,6 +13,7 @@ const theme='<script src="/stage6-brand-theme.js"></script>';
 const homepageManager='<script src="/stage7-homepage-manager.js"></script>';
 const homepagePro='<script src="/stage7-homepage-pro.js"></script>';
 const homepageAdmin='<script src="/stage7-homepage-admin.js"></script>';
+const notifications='<script src="/stage8-notifications.js"></script>';
 const mediaHome='<script src="/homepage-media.js"></script>';
 const homepage='<script src="/stage7-homepage.js"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
@@ -21,49 +22,10 @@ const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1"
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
-if(fs.existsSync(adminPath)){
- let html=fs.readFileSync(adminPath,'utf8');
- for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);
- for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);
- fs.writeFileSync(adminPath,html,'utf8');
-}
+if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');for(const s of [roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
-if(fs.existsSync(consultantPath)){
- let html=fs.readFileSync(consultantPath,'utf8');
- if(!html.includes(consultantAi))html=html.replace('</body>',`\n${consultantAi}\n</body>`);
- if(!html.includes(theme))html=html.replace('</body>',`\n${theme}\n</body>`);
- fs.writeFileSync(consultantPath,html,'utf8');
-}
-for(const file of ['admin-v5.html','consultant-panel.html']){
- const p=path.join(root,file);
- if(fs.existsSync(p)){
-  let html=fs.readFileSync(p,'utf8');
-  if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);
-  if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
-  if(!html.includes(theme))html=html.replace('</body>',`\n${theme}\n</body>`);
-  fs.writeFileSync(p,html,'utf8');
- }
-}
+if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');if(!html.includes(consultantAi))html=html.replace('</body>',`\n${consultantAi}\n</body>`);if(!html.includes(theme))html=html.replace('</body>',`\n${theme}\n</body>`);fs.writeFileSync(consultantPath,html,'utf8');}
+for(const file of ['admin-v5.html','consultant-panel.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');if(!html.includes(roleSwitcher))html=html.replace('</body>',`\n${roleSwitcher}\n</body>`);if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);if(!html.includes(theme))html=html.replace('</body>',`\n${theme}\n</body>`);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
-if(fs.existsSync(indexPath)){
- let html=fs.readFileSync(indexPath,'utf8');
- if(!html.includes(homepageRoleLogin))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
- if(!html.includes(mediaHome))html=html.replace('</body>',`\n${mediaHome}\n</body>`);
- if(!html.includes(homepage))html=html.replace('</body>',`\n${homepage}\n</body>`);
- if(!html.includes(branding))html=html.replace('</body>',`\n${branding}\n</body>`);
- if(!html.includes(theme))html=html.replace('</body>',`\n${theme}\n</body>`);
- if(!html.includes('stage5-media.css'))html=html.replace('</head>',`\n${mediaCss}\n</head>`);
- if(!html.includes('stage7-homepage.css'))html=html.replace('</head>',`\n${homepageCss}\n</head>`);
- fs.writeFileSync(indexPath,html,'utf8');
-}
-const loginPath=path.join(root,'admin-login.html');
-if(fs.existsSync(loginPath)){
- let html=fs.readFileSync(loginPath,'utf8');
- const marker='<!-- role-login-routing -->';
- if(!html.includes(marker)){
-  const helper=`\n${marker}<script>async function redirectByRole(){try{const{data:{user}}=await sb.auth.getUser();if(!user){location.replace('/admin-login.html');return}const{data:roles,error}=await sb.rpc('admin_get_user_roles',{p_user_id:user.id});if(error)throw error;if(!roles?.length){await sb.auth.signOut();throw new Error('این حساب نقش مدیریتی ندارد.')}location.replace('/admin-professional.html?v='+Date.now())}catch(e){msg.className='msg err';msg.textContent=e.message||'تشخیص نقش انجام نشد.';btn.disabled=false}}</script>`;
-  html=html.replace('</body>',helper+'\n</body>');
-  fs.writeFileSync(loginPath,html,'utf8');
- }
-}
-console.log('Admin routing, role switcher, consultant AI, media manager, branding/theme, Stage 7 professional homepage editor, live preview, image upload, drag/drop ordering, dynamic homepage and gallery injected');
+if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');for(const s of [homepageRoleLogin,mediaHome,homepage,branding,theme,notifications])if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
+console.log('Stage 8 notification manager and public notification bar injected');
