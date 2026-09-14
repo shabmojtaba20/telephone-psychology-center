@@ -7,6 +7,7 @@ const routeGuard='<script src="/admin-route-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
+const mediaShowcase='<script src="/media-showcase.js"></script>';
 const modernCss='<link rel="stylesheet" href="/admin-professional-modern.css?v=2">';
 const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 const adminPath=path.join(root,'admin-professional.html');
@@ -17,6 +18,7 @@ if(fs.existsSync(adminPath)){
  if(!html.includes(routeGuard))html=html.replace('</body>',`\n${routeGuard}\n</body>`);
  if(!html.includes(panelIntegration))html=html.replace('</body>',`\n${panelIntegration}\n</body>`);
  if(!html.includes(logoutFix))html=html.replace('</body>',`\n${logoutFix}\n</body>`);
+ if(!html.includes(mediaShowcase))html=html.replace('</body>',`\n${mediaShowcase}\n</body>`);
  if(!html.includes('admin-professional-modern.css'))html=html.replace('</head>',`\n${modernCss}\n</head>`);
  fs.writeFileSync(adminPath,html,'utf8');
 }
@@ -39,6 +41,7 @@ const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){
  let html=fs.readFileSync(indexPath,'utf8');
  if(!html.includes('homepage-role-login.js'))html=html.replace('</body>',`\n${homepageRoleLogin}\n</body>`);
+ if(!html.includes(mediaShowcase))html=html.replace('</body>',`\n${mediaShowcase}\n</body>`);
  fs.writeFileSync(indexPath,html,'utf8');
 }
 const loginPath=path.join(root,'admin-login.html');
@@ -51,4 +54,4 @@ if(fs.existsSync(loginPath)){
   fs.writeFileSync(loginPath,html,'utf8');
  }
 }
-console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary and homepage role login injected');
+console.log('Role routing, multi-role switcher, specialist-panel integration, consultant AI summary, media showcase and homepage role login injected');
