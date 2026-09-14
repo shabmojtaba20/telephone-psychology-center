@@ -6,10 +6,14 @@ const wait=fn=>document.readyState==='loading'?document.addEventListener('DOMCon
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 wait(async()=>{
  if(location.pathname!=='/admin-professional.html'||!window.supabase)return;
- let tries=0;while(!window.__adminPermissions&&tries++<60)await new Promise(r=>setTimeout(r,100));
- const perm=window.__adminPermissions;if(!(perm&&(perm.has('*')||perm.has('consultants.manage'))))return;
- const db=window.supabase.createClient(SB_URL,SB_KEY);const {data:{user}}=await db.auth.getUser();if(!user)return;
- const host=document.getElementById('consultants');if(!host)return;const card=host.querySelector('.card');if(!card)return;
+ // Do not depend on role-access.js finishing first. That module performs several
+ // network RPCs and could previously make this manager silently exit after 6s.
+ // The database RPCs below remain the authoritative permission check.
+ const db=window.supabase.createClient(SB_URL,SB_KEY);
+ const {data:{user},error:userError}=await db.auth.getUser();
+ if(userError||!user)return;
+ const host=document.getElementById('consultants');if(!host)return;
+ const card=host.querySelector('.card');if(!card)return;
  const oldList=document.getElementById('consultantsList'),oldForm=document.getElementById('consultantForm');if(oldForm)oldForm.innerHTML='';if(oldList)oldList.innerHTML='';
  const panel=document.createElement('div');panel.innerHTML=`<div class="item" style="margin-top:14px;background:#f8fafc;border-color:#c7d2fe"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>مدیریت حرفه‌ای مشاوران</b><div class="muted">پروفایل، حساب ورود، درصد حق‌العمل و وضعیت فعالیت هر مشاور</div></div><button class="btn secondary" id="s10Schedule">📅 مدیریت برنامه و نوبت‌های مشاوران</button></div></div><div id="s10Form" class="item" style="display:none"></div><div id="s10List"></div>`;card.appendChild(panel);
  const $=id=>document.getElementById(id);$('s10Schedule').onclick=()=>location.href='/appointment-slots.html';let consultants=[],users=[];
@@ -29,6 +33,6 @@ wait(async()=>{
  }
  function render(){const list=$('s10List');if(!consultants.length){list.innerHTML='<div class="empty">هنوز مشاوری ثبت نشده است.</div>';return}list.innerHTML=`<div class="item" style="background:#f8fafc;border-color:#e2e8f0;margin-top:14px"><b>حساب ورود و حق‌العمل مشاوران</b><div class="muted">این دو مورد برای هر مشاور مستقیماً در کارت او نمایش داده می‌شود.</div></div>`+consultants.map(c=>{const pct=Number(c.commission_percent||0);return `<div class="item"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:240px;flex:1"><b style="font-size:17px">${esc(c.name)}</b><div class="muted">${esc(c.specialty||'بدون تخصص ثبت‌شده')}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:10px"><div style="padding:9px;border-radius:9px;background:#eef2ff"><small class="muted">🔐 حساب ورود</small><div><b>${esc(c.linked_email||'متصل نیست')}</b></div></div><div style="padding:9px;border-radius:9px;background:#ecfdf5"><small class="muted">💰 حق‌العمل کاری</small><div><b>${pct.toLocaleString('fa-IR')}٪</b></div></div></div></div><span class="badge" style="background:${c.is_active?'#dcfce7':'#f1f5f9'};color:${c.is_active?'#166534':'#64748b'}">${c.is_active?'فعال':'غیرفعال'}</span></div><div class="actions" style="margin-top:10px"><button class="btn secondary" data-edit="${c.id}">✏️ ویرایش و اتصال حساب</button><button class="btn gray" data-schedule="${c.id}">📅 برنامه کاری</button></div></div>`}).join('');list.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>form(consultants.find(c=>c.id===b.dataset.edit)||{}));list.querySelectorAll('[data-schedule]').forEach(b=>b.onclick=()=>location.href='/appointment-slots.html?consultant_id='+encodeURIComponent(b.dataset.schedule))}
  async function load(){const r=await db.rpc('admin_list_consultants');if(r.error)return notice('فهرست مشاوران بارگذاری نشد: '+r.error.message,true);consultants=r.data||[];render()}
- $('addConsultant').onclick=async()=>{users=await loadUsers();form()};users=await loadUsers();await load();
+ const add=$('addConsultant');if(add)add.onclick=async()=>{users=await loadUsers();form()};users=await loadUsers();await load();
 });
 })();
