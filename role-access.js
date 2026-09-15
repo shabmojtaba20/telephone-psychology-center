@@ -4,14 +4,15 @@
   const RULES={dashboard:['dashboard.view'],general:['general.manage'],appearance:['appearance.manage'],media:['media.manage'],contact:['contact.manage'],consultants:['consultants.manage'],availability:['availability.manage'],appointments:['appointments.manage'],services:['services.manage'],finance:['finance.view','finance.manage'],bank:['bank.manage'],gateways:['gateways.manage'],messages:['messages.manage'],content:['content.manage'],notifications:['notifications.manage'],security:['security.manage']};
   let db;
   const create=()=>db||(db=window.supabase.createClient(SB_URL,SB_KEY));
+  const goLogin=()=>location.replace('/?login=1&returnTo='+encodeURIComponent(location.pathname+location.search));
   async function init(){
     try{
       const client=create();
       const {data:{user},error:userError}=await client.auth.getUser();
-      if(userError||!user){location.replace('/admin-login.html');return;}
+      if(userError||!user){goLogin();return;}
       const {data:roles,error:rolesError}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
       if(rolesError) throw rolesError;
-      if(!roles||!roles.length){await client.auth.signOut();location.replace('/admin-login.html?error=no-role');return;}
+      if(!roles||!roles.length){await client.auth.signOut();location.replace('/?login=1&error=no-role');return;}
       const roleNames=[...new Set(roles.map(r=>r.name).filter(Boolean))];
       const active=sessionStorage.getItem('activeAdminRole');
       const activeRole=active&&roleNames.includes(active)?active:roleNames[0];
@@ -32,7 +33,7 @@
       document.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('تعیین تاریخ و ساعت نوبت')&&!allowed.has('appointments'))b.style.display='none';});
       const title=document.getElementById('title');
       if(title){const labels={super_admin:'مدیر ارشد',finance_manager:'مدیر مالی',consultant_manager:'مدیر مشاوران',appointment_manager:'مدیر نوبت‌ها',content_manager:'مدیر محتوا'};title.textContent=labels[activeRole]||'پنل مدیریت';}
-    }catch(e){console.error('role access',e);location.replace('/admin-login.html?error=role-check');}
+    }catch(e){console.error('role access',e);goLogin();}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
