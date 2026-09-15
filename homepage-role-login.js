@@ -2,6 +2,20 @@
   const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
   const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
   const wait=fn=>{if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn,{once:true});else fn();};
+  const routeForRoles=async(client,user)=>{
+    const {data:roles,error}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
+    const names=[...new Set((roles||[]).map(r=>r.name).filter(Boolean))];
+    if(names.includes('super_admin'))return ['/admin-professional.html','super_admin'];
+    if(names.includes('finance_manager'))return ['/admin-v5.html','finance_manager'];
+    if(names.includes('consultant_manager'))return ['/admin-professional.html','consultant_manager'];
+    if(names.includes('appointment_manager'))return ['/admin-professional.html','appointment_manager'];
+    if(names.includes('content_manager'))return ['/admin-professional.html','content_manager'];
+    try{
+      const {data:link}=await client.from('consultant_user_links').select('consultant_id').eq('user_id',user.id).maybeSingle();
+      if(link?.consultant_id)return ['/consultant-panel-professional.html','consultant'];
+    }catch(_){}
+    return null;
+  };
   wait(function(){
     const btn=document.getElementById('loginBtn');
     const input=document.getElementById('loginIdentifier');
@@ -21,16 +35,21 @@
         const{data,error}=await client.auth.signInWithPassword({email:identifier,password:pass.value});
         if(error)throw error;
         if(!data?.user)throw new Error('ورود انجام نشد.');
-        const{data:roles,error:roleError}=await client.rpc('admin_get_user_roles',{p_user_id:data.user.id});
-        if(roleError)throw roleError;
-        const names=[...new Set((roles||[]).map(r=>r.name).filter(Boolean))];
-        if(names.length){
-          sessionStorage.setItem('activeAdminRole',names[0]);
-          sessionStorage.removeItem('logoutInProgress');
-          location.replace('/admin-professional.html?v='+Date.now());
+        sessionStorage.removeItem('logoutInProgress');
+        const destination=await routeForRoles(client,data.user);
+        const params=new URLSearchParams(location.search);
+        const returnTo=params.get('returnTo');
+        if(returnTo && destination){
+          sessionStorage.setItem('activeAdminRole',destination[1]);
+          location.replace(returnTo);
           return;
         }
-        show('ورود موفق بود.',true);
+        if(destination){
+          sessionStorage.setItem('activeAdminRole',destination[1]);
+          location.replace(destination[0]+'?role='+encodeURIComponent(destination[1])+'&v='+Date.now());
+          return;
+        }
+        show('ورود موفق بود. پنل کاربری شما آماده است.',true);
         setTimeout(()=>location.reload(),350);
       }catch(err){
         btn.disabled=false;
@@ -39,7 +58,6 @@
     },true);
   });
 
-  // After any panel logout, /?login=1 opens the initial user login dialog automatically.
   wait(function(){
     const params=new URLSearchParams(location.search);
     if(params.get('login')==='1'){
@@ -54,7 +72,6 @@
     }
   });
 
-  // لینک‌های دسترسی حرفه‌ای در فوتر صفحه اصلی
   wait(function(){
     const footer=document.querySelector('footer.footer');
     if(!footer || footer.querySelector('[data-footer-panels]')) return;
