@@ -1,5 +1,5 @@
 (function(){
-  const dbp=window.db||window.supabaseClient||null;
+  const dbp=(window.db&&typeof window.db.from==='function')?window.db:(window.supabase&&window.supabase.createClient?window.supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'):null);
   if(!dbp) return;
   const moneyP=n=>Number(n||0).toLocaleString('fa-IR');
   const escP=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
