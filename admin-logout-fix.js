@@ -1,4 +1,4 @@
-/* Centralized logout handler: prevents legacy /admin redirect loops after sign-out. */
+/* Centralized logout: every panel exit ends the local Supabase session and returns to the main user login. */
 (function () {
   const SUPABASE_URL = 'https://aserkyiwwyggtixckjsv.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
@@ -14,35 +14,39 @@
     });
   }
 
+  function isLogoutTarget(el) {
+    if (!el) return false;
+    const node = el.closest('button,a,[role="button"]');
+    if (!node) return false;
+    const id = (node.id || '').toLowerCase();
+    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    if (/^(logout|signout|exit|خروج|بستن پنل|خروج از پنل)$/i.test(text)) return true;
+    return ['logoutbtn','logout','logoutbutton','logout-btn','logoutbtnmobile'].includes(id);
+  }
+
   async function logout(event) {
     if (handled) return;
+    if (!isLogoutTarget(event?.target)) return;
     handled = true;
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
-    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
     try {
       sessionStorage.removeItem('activeAdminRole');
+      sessionStorage.removeItem('logoutInProgress');
       if (!window.supabase) await load('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
       const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       await client.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn('logout cleanup', e);
     } finally {
-      window.location.replace('/');
+      // Main public page; homepage-role-login opens the initial user login dialog.
+      window.location.replace('/?login=1');
     }
   }
 
-  function bind() {
-    const selectors = ['#logoutBtn', '#logout', '#logoutButton', '#logout-btn', '#logoutBtnMobile'];
-    selectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(el => {
-        el.addEventListener('click', logout, true);
-      });
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
-  else bind();
+  document.addEventListener('click', logout, true);
+  document.addEventListener('submit', function (event) {
+    if (isLogoutTarget(event?.submitter)) logout(event);
+  }, true);
 })();
