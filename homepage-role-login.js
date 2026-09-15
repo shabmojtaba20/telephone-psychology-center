@@ -32,23 +32,31 @@
     const path=value.split('?')[0];
     return allowed.has(path)?value:null;
   };
+  const goTop=()=>{
+    try{window.scrollTo({top:0,left:0,behavior:'smooth'});}catch(_){window.scrollTo(0,0);}
+    history.replaceState(null,'',location.pathname+location.search.replace(/([?&])(?:login|returnTo)=[^&]*&?/g,'$1').replace(/[?&]$/,''));
+  };
   const handlePanelNavigation=async(target)=>{
     const safeTarget=safeReturnTo(target);
     if(!safeTarget)return;
     const client=await loadClient();
+    // If the visitor is not authenticated, keep the intended behavior: send them to login.
     if(!client){location.replace('/?login=1&returnTo='+encodeURIComponent(safeTarget));return;}
     try{
       const {data:{user}}=await client.auth.getUser();
       if(!user){location.replace('/?login=1&returnTo='+encodeURIComponent(safeTarget));return;}
+      // Authenticated users are routed by their actual role. A normal user has no admin role,
+      // so do NOT send them back to the login screen; simply return them to the top of homepage.
       const destination=await routeForRoles(client,user);
       if(destination){
         sessionStorage.setItem('activeAdminRole',destination[1]);
         location.replace(destination[0]+'?role='+encodeURIComponent(destination[1])+'&v='+Date.now());
         return;
       }
-      location.replace('/?login=1&returnTo='+encodeURIComponent(safeTarget));
+      goTop();
     }catch(_){
-      location.replace('/?login=1&returnTo='+encodeURIComponent(safeTarget));
+      // A valid logged-in session without a management/consultant role is a normal user.
+      goTop();
     }
   };
 
@@ -130,7 +138,7 @@
     const box=document.createElement('div');
     box.setAttribute('data-footer-panels','1');
     box.style.cssText='margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
-    box.innerHTML='<a href="/?login=1&returnTo=%2Fadmin-professional.html" data-footer-panel="/admin-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#5b5bd6;color:#fff;text-decoration:none;font-weight:700">🔐 ورود به پنل مدیریت</a><a href="/?login=1&returnTo=%2Fconsultant-panel-professional.html" data-footer-panel="/consultant-panel-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">👨‍⚕️ پنل مشاور</a><a href="/?login=1&returnTo=%2Fadmin-v5.html" data-footer-panel="/admin-v5.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">💳 پنل مالی</a>';
+    box.innerHTML='<a href="/admin-professional.html" data-footer-panel="/admin-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#5b5bd6;color:#fff;text-decoration:none;font-weight:700">🔐 ورود به پنل مدیریت</a><a href="/consultant-panel-professional.html" data-footer-panel="/consultant-panel-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">👨‍⚕️ پنل مشاور</a><a href="/admin-v5.html" data-footer-panel="/admin-v5.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">💳 پنل مالی</a>';
     footer.querySelector('.c')?.appendChild(box);
   });
 })();
