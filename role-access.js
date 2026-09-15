@@ -12,7 +12,7 @@
       if(userError||!user){goLogin();return;}
       const {data:roles,error:rolesError}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
       if(rolesError) throw rolesError;
-      if(!roles||!roles.length){await client.auth.signOut();location.replace('/?login=1&error=no-role');return;}
+      if(!roles||!roles.length){await client.auth.signOut({scope:'local'});location.replace('/?login=1&error=no-role');return;}
       const roleNames=[...new Set(roles.map(r=>r.name).filter(Boolean))];
       const active=sessionStorage.getItem('activeAdminRole');
       const activeRole=active&&roleNames.includes(active)?active:roleNames[0];
