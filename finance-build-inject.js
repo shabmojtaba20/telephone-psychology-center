@@ -3,7 +3,7 @@ const path = require('path');
 
 const root = __dirname;
 const file = path.join(root, 'admin-v5.html');
-const version = '20260915-1805';
+const version = '20260915-1820';
 
 if (!fs.existsSync(file)) {
   throw new Error('admin-v5.html not found');
