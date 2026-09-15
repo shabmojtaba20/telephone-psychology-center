@@ -1,32 +1,5 @@
-/* Role-aware admin route guard: authentication + explicit role checks for sensitive panels. */
-(function () {
-  const PUBLIC = new Set(['/admin-login.html', '/admin-login']);
-  if (PUBLIC.has(window.location.pathname)) return;
-  const SUPABASE_URL = 'https://aserkyiwwyggtixckjsv.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
-  const REQUIRED_ROLE = {
-    '/admin-v5.html': 'finance_manager',
-    '/consultant-panel.html': 'consultant_manager'
-  };
-  function load(src) { return new Promise((ok, bad) => { const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=bad; document.head.appendChild(s); }); }
-  async function guard() {
-    try {
-      if (!window.supabase) await load('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
-      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      const { data: { user }, error } = await client.auth.getUser();
-      if (error || !user) return window.location.replace('/admin-login.html?returnTo=' + encodeURIComponent(location.pathname + location.search));
-      const { data: roles, error: roleError } = await client.rpc('admin_get_user_roles', { p_user_id: user.id });
-      if (roleError || !roles || !roles.length) { await client.auth.signOut(); return window.location.replace('/admin-login.html?error=no_admin_role'); }
-      const names = [...new Set(roles.map(r => r.name).filter(Boolean))];
-      const required = REQUIRED_ROLE[window.location.pathname];
-      if (required && !names.includes('super_admin') && !names.includes(required)) {
-        return window.location.replace('/admin-professional.html?error=role_denied&required=' + encodeURIComponent(required));
-      }
-      document.documentElement.dataset.adminAuthorized = 'true';
-      document.documentElement.dataset.adminRoles = names.join(',');
-      const active = sessionStorage.getItem('activeAdminRole');
-      if (active && names.includes(active)) document.documentElement.dataset.activeRole = active;
-    } catch (e) { console.error(e); window.location.replace('/admin-login.html?error=auth_check_failed'); }
-  }
-  guard();
+/* Compatibility shim: panel-auth-guard.js is the single authentication and panel-routing gate. */
+(function(){
+  'use strict';
+  if(document.documentElement.dataset.panelAuthChecking==='true' || document.documentElement.dataset.panelAuthenticated==='true') return;
 })();
