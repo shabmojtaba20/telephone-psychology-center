@@ -39,6 +39,21 @@
     },true);
   });
 
+  // After any panel logout, /?login=1 opens the initial user login dialog automatically.
+  wait(function(){
+    const params=new URLSearchParams(location.search);
+    if(params.get('login')==='1'){
+      const open=()=>{
+        const account=document.getElementById('accountBtn');
+        if(account){account.click();return true;}
+        const modal=document.getElementById('authModal');
+        if(modal)modal.classList.remove('hidden');
+        return !!modal;
+      };
+      if(!open())setTimeout(open,250);
+    }
+  });
+
   // لینک‌های دسترسی حرفه‌ای در فوتر صفحه اصلی
   wait(function(){
     const footer=document.querySelector('footer.footer');
