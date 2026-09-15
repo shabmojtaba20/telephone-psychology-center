@@ -3,6 +3,7 @@
   if(!dbp)return;
   const moneyP=n=>Number(n||0).toLocaleString('fa-IR');
   const escP=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  const withTimeout=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label)),ms))]);
   async function loadPreview(){
     const box=document.getElementById('receiptPreviewBody');if(!box)return;
     const r=await dbp.from('payment_receipts').select('id,amount,status,invoice_id,appointment_id,tracking_code,submitted_at').eq('status','pending').order('submitted_at',{ascending:false}).limit(50);
@@ -17,24 +18,30 @@
     const box=document.getElementById('receiptPreviewBody');
     try{
       if(!confirm('این عملیات رسید را تأیید کرده و تراکنش مالی/فاکتور مرتبط را ثبت می‌کند. ادامه می‌دهید؟'))return;
-      if(box)box.insertAdjacentHTML('afterbegin','<div class="notice">در حال بررسی نشست مدیر مالی و ثبت رسید...</div>');
-      const s=await dbp.auth.getSession();
-      if(s.error||!s.data?.session){alert('تأیید انجام نشد: نشست مدیر مالی پیدا نشد. ابتدا از پنل مدیریت خارج و دوباره وارد شوید.');return;}
-      const role=sessionStorage.getItem('activeAdminRole')||'finance_manager';
-      const p=await dbp.rpc('has_admin_role_permission',{p_role:role,p_permission:'finance.manage'});
-      if(p.error){alert('تأیید انجام نشد: بررسی دسترسی finance.manage خطا داد:\n'+p.error.message);return;}
-      if(p.data!==true){alert('تأیید انجام نشد: نقش فعلی شما مجوز finance.manage ندارد. نقش فعلی: '+role);return;}
+      if(box)box.insertAdjacentHTML('afterbegin','<div class="notice" id="receiptActionNotice">در حال بررسی نشست مدیر مالی و ثبت رسید...</div>');
+      // Do not perform a client-side role authorization RPC here. The protected review RPC
+      // performs the authoritative finance.manage check using auth.uid(). This avoids the
+      // UI getting stuck before the actual review call when the role/session state is stale.
+      const userResult=await withTimeout(dbp.auth.getUser(),10000,'بررسی هویت مدیر مالی زمان‌بر شد. صفحه را تازه‌سازی کنید و دوباره وارد شوید.');
+      if(userResult.error||!userResult.data?.user){alert('تأیید انجام نشد: نشست مدیر مالی معتبر نیست. ابتدا صفحه را تازه‌سازی و دوباره وارد شوید.');return;}
       const note=document.getElementById('note_'+id)?.value.trim()||'تأیید رسید توسط مدیر مالی';
       const inputTracking=document.getElementById('track_'+id)?.value.trim()||null;
       let tracking=inputTracking;
-      if(!tracking){const rr=await dbp.from('payment_receipts').select('tracking_code').eq('id',id).maybeSingle();tracking=rr.data?.tracking_code||null;}
-      const r=await dbp.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:'approved',p_note:note,p_tracking_code:tracking});
+      if(!tracking){
+        const rr=await withTimeout(dbp.from('payment_receipts').select('tracking_code').eq('id',id).maybeSingle(),10000,'دریافت کد پیگیری زمان‌بر شد.');
+        if(rr.error){alert('تأیید انجام نشد: '+rr.error.message);return;}
+        tracking=rr.data?.tracking_code||null;
+      }
+      if(box){const n=document.getElementById('receiptActionNotice');if(n)n.textContent='در حال ثبت تأیید رسید در سیستم مالی...';}
+      const r=await withTimeout(dbp.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:'approved',p_note:note,p_tracking_code:tracking}),20000,'ثبت رسید بیش از حد معمول طول کشید. لطفاً نتیجه تراکنش را بررسی کنید.');
       if(r.error){alert('تأیید انجام نشد:\n'+r.error.message);return;}
-      const result=r.data||{};alert('رسید با موفقیت تأیید و ثبت مالی شد.\nشناسه تراکنش: '+(result.transaction_id||'ثبت شد'));
+      const result=r.data||{};
+      alert('رسید با موفقیت تأیید و ثبت مالی شد.\nشناسه تراکنش: '+(result.finance_transaction_id||result.transaction_id||'ثبت شد'));
       if(typeof window.loadReceipts==='function')await window.loadReceipts();
       if(typeof window.loadSummary==='function')await window.loadSummary();
       await loadPreview();
     }catch(e){alert('تأیید انجام نشد:\n'+(e?.message||String(e)));}
+    finally{const n=document.getElementById('receiptActionNotice');if(n)n.remove();}
   };
   function init(){
     if(document.getElementById('receiptPreview'))return;
