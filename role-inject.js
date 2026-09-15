@@ -12,8 +12,8 @@ const targets = [
 ];
 
 function injectHead(html, scripts) {
-  const tags = scripts.join('\n');
   if (html.includes('/panel-auth-guard.js')) return html;
+  const tags = scripts.join('\n');
   if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, '<head$1>\n' + tags);
   return tags + '\n' + html;
 }
@@ -25,5 +25,3 @@ for (const file of targets) {
   html = injectHead(html, [panelAuth]);
   fs.writeFileSync(filePath, html, 'utf8');
 }
-
-// Existing role-specific injection logic remains below/alongside this guard.
