@@ -13,6 +13,7 @@ const consultantReadonly='<script src="/consultant-profile-readonly.js"></script
 const consultantPayment='<script src="/consultant-payment-status.js"></script>';
 const financeTools='<script src="/finance-tools.js"></script>';
 const financeDashboard='<script src="/finance-dashboard.js"></script>';
+const financeManagerReport='<script src="/finance-manager-report.js"></script>';
 const mediaUi='<script src="/stage5-media-ui.js"></script>';
 const branding='<script src="/stage5-branding.js"></script>';
 const theme='<script src="/stage6-brand-theme.js"></script>';
@@ -37,7 +38,7 @@ const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=injectHead(html,[panelAuth]);html=inject(html,[logoutFix,consultantAi,consultantReadonly,consultantPayment,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
-for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme];if(file==='admin-v5.html')scripts.push(financeTools,financeDashboard);html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
+for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme];if(file==='admin-v5.html')scripts.push(financeTools,financeDashboard,financeManagerReport);html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
 console.log('Stage 12 finance expense -> profit/loss module injected');
