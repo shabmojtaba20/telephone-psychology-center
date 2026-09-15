@@ -3,7 +3,7 @@
   const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
   const wait=fn=>{if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn,{once:true});else fn();};
   const routeForRoles=async(client,user)=>{
-    const {data:roles,error}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
+    const {data:roles}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
     const names=[...new Set((roles||[]).map(r=>r.name).filter(Boolean))];
     if(names.includes('super_admin'))return ['/admin-professional.html','super_admin'];
     if(names.includes('finance_manager'))return ['/admin-v5.html','finance_manager'];
@@ -15,6 +15,12 @@
       if(link?.consultant_id)return ['/consultant-panel-professional.html','consultant'];
     }catch(_){}
     return null;
+  };
+  const safeReturnTo=value=>{
+    if(typeof value!=='string'||!value.startsWith('/')||value.startsWith('//'))return null;
+    const allowed=new Set(['/admin-professional.html','/admin-v5.html','/consultant-panel-professional.html','/consultant-settlements.html','/finance-audit.html','/finance-reports.html','/order-review.html','/payment.html','/card-payment.html','/submit-receipt.html']);
+    const path=value.split('?')[0];
+    return allowed.has(path)?value:null;
   };
   wait(function(){
     const btn=document.getElementById('loginBtn');
@@ -38,7 +44,7 @@
         sessionStorage.removeItem('logoutInProgress');
         const destination=await routeForRoles(client,data.user);
         const params=new URLSearchParams(location.search);
-        const returnTo=params.get('returnTo');
+        const returnTo=safeReturnTo(params.get('returnTo'));
         if(returnTo && destination){
           sessionStorage.setItem('activeAdminRole',destination[1]);
           location.replace(returnTo);
@@ -78,7 +84,26 @@
     const box=document.createElement('div');
     box.setAttribute('data-footer-panels','1');
     box.style.cssText='margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:10px;flex-wrap:wrap;align-items:center;';
-    box.innerHTML='<a href="/admin-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#5b5bd6;color:#fff;text-decoration:none;font-weight:700">🔐 ورود به پنل مدیریت</a><a href="/consultant-panel-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">👨‍⚕️ پنل مشاور</a>';
+    box.innerHTML='<a href="/?login=1&returnTo=%2Fadmin-professional.html" data-footer-panel="/admin-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#5b5bd6;color:#fff;text-decoration:none;font-weight:700">🔐 ورود به پنل مدیریت</a><a href="/?login=1&returnTo=%2Fconsultant-panel-professional.html" data-footer-panel="/consultant-panel-professional.html" style="display:inline-block;padding:9px 14px;border-radius:10px;background:#fff;color:#30364d;text-decoration:none;font-weight:700">👨‍⚕️ پنل مشاور</a>';
     footer.querySelector('.c')?.appendChild(box);
+    box.querySelectorAll('[data-footer-panel]').forEach(link=>link.addEventListener('click',async function(e){
+      e.preventDefault();
+      const target=safeReturnTo(this.getAttribute('data-footer-panel'));
+      if(!target)return;
+      try{
+        if(!client)throw new Error('auth-client-unavailable');
+        const {data:{user}}=await client.auth.getUser();
+        if(!user){location.replace('/?login=1&returnTo='+encodeURIComponent(target));return;}
+        const destination=await routeForRoles(client,user);
+        if(destination){
+          sessionStorage.setItem('activeAdminRole',destination[1]);
+          location.replace(destination[0]+'?role='+encodeURIComponent(destination[1])+'&v='+Date.now());
+          return;
+        }
+        location.replace('/?login=1&returnTo='+encodeURIComponent(target));
+      }catch(_){
+        location.replace('/?login=1&returnTo='+encodeURIComponent(target));
+      }
+    }));
   });
 })();
