@@ -2,6 +2,7 @@
   const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
   const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
   const wait=fn=>{if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fn,{once:true});else fn();};
+  const getClient=()=>window.supabase?.createClient?window.supabase.createClient(SB_URL,SB_KEY):null;
   const routeForRoles=async(client,user)=>{
     const {data:roles}=await client.rpc('admin_get_user_roles',{p_user_id:user.id});
     const names=[...new Set((roles||[]).map(r=>r.name).filter(Boolean))];
@@ -30,7 +31,7 @@
     if(!btn||!input||!pass)return;
     const show=(text,ok)=>{if(msg){msg.className='msg '+(ok?'ok':'err');msg.textContent=text;}};
     const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-    const client=window.supabase?.createClient?window.supabase.createClient(SB_URL,SB_KEY):null;
+    const client=getClient();
     if(!client)return;
     btn.addEventListener('click',async function(e){
       const identifier=input.value.trim();
@@ -90,6 +91,7 @@
       e.preventDefault();
       const target=safeReturnTo(this.getAttribute('data-footer-panel'));
       if(!target)return;
+      const client=getClient();
       try{
         if(!client)throw new Error('auth-client-unavailable');
         const {data:{user}}=await client.auth.getUser();
