@@ -10,6 +10,7 @@ const adminStability='<script src="/admin-professional-stability.js"></script>';
 const consultantManager='<script src="/stage10-consultant-management.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
 const consultantReadonly='<script src="/consultant-profile-readonly.js"></script>';
+const consultantPayment='<script src="/consultant-payment-status.js"></script>';
 const mediaUi='<script src="/stage5-media-ui.js"></script>';
 const branding='<script src="/stage5-branding.js"></script>';
 const theme='<script src="/stage6-brand-theme.js"></script>';
@@ -32,7 +33,7 @@ function inject(html,scripts=[]){for(const s of scripts)if(!html.includes(s))htm
 const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=inject(html,[roleScript,roleSwitcher,routeGuard,panelIntegration,logoutFix,adminStability,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
-if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=inject(html,[logoutFix,consultantAi,consultantReadonly,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
+if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=inject(html,[logoutFix,consultantAi,consultantReadonly,consultantPayment,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
 for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=inject(html,[logoutFix,roleSwitcher,theme]);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
