@@ -1,8 +1,8 @@
 {
   "name": "telephone-psychology-center",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "scripts": {
-    "build": "node build.js && node education-build.js && node role-inject.js"
+    "build": "node build.js && node education-build.js && node finance-build-inject.js && node role-inject.js"
   }
 }
