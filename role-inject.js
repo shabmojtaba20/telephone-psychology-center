@@ -22,6 +22,7 @@ const mediaHome='<script src="/homepage-media.js"></script>';
 const homepage='<script src="/stage7-homepage.js"></script>';
 const customerDashboard='<script src="/stage11-customer-dashboard.js"></script>';
 const orderCheckout='<script src="/stage11-order-checkout.js"></script>';
+const consultantCall='<script src="/stage11-consultant-call.js"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
 const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
@@ -34,5 +35,5 @@ const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=inject(html,[logoutFix,consultantAi,consultantReadonly,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
 for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=inject(html,[logoutFix,roleSwitcher,theme]);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
-if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
-console.log('Stage 11 order review -> payment and delete flow injected');
+if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
+console.log('Stage 11 order review -> payment -> consultant call flow injected');
