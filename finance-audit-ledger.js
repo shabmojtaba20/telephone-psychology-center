@@ -1,5 +1,5 @@
 (()=>{
-const db=window.supabaseClient||window.db||window.supabase;
+const db=window.supabaseClient||window.db||(window.supabase?.from?window.supabase:null)||(window.supabase?.createClient?window.supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'):null);
 if(!db||!document.body)return;
 const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n||0).toLocaleString('fa-IR');
@@ -11,12 +11,6 @@ const anchor=document.querySelector('main')||document.body;anchor.appendChild(ho
 const labelAction=a=>({approved:'تأیید',rejected:'رد',created:'ایجاد',updated:'ویرایش',deleted:'حذف'}[a]||a||'—');
 const labelEntity=e=>({payment_receipt:'رسید پرداخت',finance_transaction:'تراکنش مالی',expense:'هزینه',consultant_settlement:'تسویه مشاور',invoice:'صورتحساب'}[e]||e||'—');
 const json=v=>v?`<div class="fal-json">${esc(JSON.stringify(v,null,2))}</div>`:'—';
-async function load(){
- const from=$('falFrom').value?$('falFrom').value+'T00:00:00':null,to=$('falTo').value?$('falTo').value+'T23:59:59.999':null;
- const {data,error}=await db.rpc('get_finance_audit_logs',{p_from:from,p_to:to,p_entity_type:$('falEntity').value||null,p_action:$('falAction').value||null,p_limit:500});
- if(error){$('falRows').innerHTML=`<tr><td colspan="8">${esc(error.message)}</td></tr>`;return}
- const rows=data||[];$('falCount').textContent=money(rows.length)+' رویداد';
- $('falRows').innerHTML=rows.length?rows.map(x=>`<tr><td>${fmt(x.created_at)}</td><td><span class="fal-badge">${esc(labelAction(x.action))}</span></td><td>${esc(labelEntity(x.entity_type))}</td><td>${esc(x.entity_id||'—')}</td><td>${esc(x.actor_id||'—')}</td><td>${json(x.before_data)}</td><td>${json(x.after_data)}</td><td>${esc(x.note||'—')}</td></tr>`).join(''):'<tr><td colspan="8">رویدادی برای این فیلتر وجود ندارد.</td></tr>';
-}
+async function load(){const from=$('falFrom').value?$('falFrom').value+'T00:00:00':null,to=$('falTo').value?$('falTo').value+'T23:59:59.999':null;const{data,error}=await db.rpc('get_finance_audit_logs',{p_from:from,p_to:to,p_entity_type:$('falEntity').value||null,p_action:$('falAction').value||null,p_limit:500});if(error){$('falRows').innerHTML=`<tr><td colspan="8">${esc(error.message)}</td></tr>`;return}const rows=data||[];$('falCount').textContent=money(rows.length)+' رویداد';$('falRows').innerHTML=rows.length?rows.map(x=>`<tr><td>${fmt(x.created_at)}</td><td><span class="fal-badge">${esc(labelAction(x.action))}</span></td><td>${esc(labelEntity(x.entity_type))}</td><td>${esc(x.entity_id||'—')}</td><td>${esc(x.actor_id||'—')}</td><td>${json(x.before_data)}</td><td>${json(x.after_data)}</td><td>${esc(x.note||'—')}</td></tr>`).join(''):'<tr><td colspan="8">رویدادی برای این فیلتر وجود ندارد.</td></tr>'}
 ['falFrom','falTo','falEntity','falAction'].forEach(id=>$(id).addEventListener('change',load));$('falRefresh').addEventListener('click',load);load();
 })();
