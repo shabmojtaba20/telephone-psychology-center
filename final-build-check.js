@@ -12,6 +12,8 @@ const requiredFiles = [
   'finance-tools.js',
   'finance-dashboard.js',
   'finance-manager-report.js',
+  'advanced-finance-report.js',
+  'finance-report-reconciliation.js',
   'finance-build-inject.js',
   'role-inject.js'
 ];
@@ -30,6 +32,8 @@ if (!/<html[\s>]/i.test(indexHtml) || !/<body[\s>]/i.test(indexHtml)) {
 const financeReports = fs.readFileSync(path.join(root, 'finance-reports.html'), 'utf8');
 const financeAudit = fs.readFileSync(path.join(root, 'finance-audit.html'), 'utf8');
 const admin = fs.readFileSync(path.join(root, 'admin-v5.html'), 'utf8');
+const advancedReport = fs.readFileSync(path.join(root, 'advanced-finance-report.js'), 'utf8');
+const reconciliation = fs.readFileSync(path.join(root, 'finance-report-reconciliation.js'), 'utf8');
 
 if (!financeReports.includes('advanced-finance-report.js')) {
   throw new Error('FINAL BUILD CHECK FAILED: advanced finance report injection is missing');
@@ -39,6 +43,18 @@ if (!financeAudit.includes('finance-audit-ledger.js')) {
 }
 if (!admin.includes('finance-tools.js') || !admin.includes('finance-dashboard.js')) {
   throw new Error('FINAL BUILD CHECK FAILED: core finance assets are missing from admin-v5.html');
+}
+if (!advancedReport.includes("get_advanced_finance_report")) {
+  throw new Error('FINAL BUILD CHECK FAILED: unified advanced finance RPC is missing');
+}
+if (advancedReport.includes("$('afPending').textContent")) {
+  throw new Error('FINAL BUILD CHECK FAILED: stale afPending element reference remains');
+}
+if (!reconciliation.includes("get_finance_reconciliation")) {
+  throw new Error('FINAL BUILD CHECK FAILED: reconciliation RPC is missing');
+}
+if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afService') || !reconciliation.includes('afGateway')) {
+  throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
 const allHtml = [indexHtml, financeReports, financeAudit, admin];
