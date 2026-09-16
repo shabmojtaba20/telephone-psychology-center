@@ -42,13 +42,13 @@ if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inj
 const financePath=path.join(root,'admin-v5.html');
 if(fs.existsSync(financePath)){
   const html=fs.readFileSync(financePath,'utf8');
-  const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js'];
+  const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js'];
   const missing=required.filter(src=>!html.includes(src));
   const duplicate=required.filter(src=>(html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length!==1);
-  const markers=(html.match(/<!-- finance-build-injection-v2 -->/g)||[]).length;
+  const markers=(html.match(/<!-- finance-build-injection-v7 -->/g)||[]).length;
   if(missing.length||duplicate.length||markers!==1){
     throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers);
   }
-  console.log('BUILD VERIFY: finance injection OK; one owner, five finance assets, one marker');
+  console.log('BUILD VERIFY: finance injection OK; one owner, nine finance assets, one marker');
 }
 console.log('Role build injection completed; finance assets remain owned by finance-build-inject.js');
