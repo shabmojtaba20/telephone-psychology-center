@@ -25,6 +25,7 @@ const homepage='<script src="/stage7-homepage.js"></script>';
 const customerDashboard='<script src="/stage11-customer-dashboard.js"></script>';
 const orderCheckout='<script src="/stage11-order-checkout.js"></script>';
 const consultantCall='<script src="/stage11-consultant-call.js"></script>';
+const financeBankFix='<script src="/finance-bank-settings-fix.js?v=1"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
 const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
@@ -36,7 +37,7 @@ const adminPath=path.join(root,'admin-professional.html');
 if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=injectHead(html,[panelAuth]);html=inject(html,[logoutFix,consultantAi,consultantReadonly,consultantPayment,consultantOps,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
-for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme];html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
+for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme,...(file==='admin-v5.html'?[financeBankFix]:[])];html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
 const financePath=path.join(root,'admin-v5.html');
