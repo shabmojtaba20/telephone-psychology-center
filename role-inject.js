@@ -24,7 +24,7 @@ const mediaHome='<script src="/homepage-media.js"></script>';
 const homepage='<script src="/stage7-homepage.js"></script>';
 const customerDashboard='<script src="/stage11-customer-dashboard.js"></script>';
 const orderCheckout='<script src="/stage11-order-checkout.js"></script>';
-const consultantCall='<script src="/stage11-consultant-call.js"></script>';
+const consultantCall='<script src="/stage11-consultant-call.js?v=2"></script>';
 const financeBankFix='<script src="/finance-bank-settings-fix.js?v=1"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
