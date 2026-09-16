@@ -38,17 +38,14 @@ if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8'
 for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme];html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
-
 const financePath=path.join(root,'admin-v5.html');
 if(fs.existsSync(financePath)){
   const html=fs.readFileSync(financePath,'utf8');
-  const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js'];
+  const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js','/management-final-dashboard.js'];
   const missing=required.filter(src=>!html.includes(src));
   const duplicate=required.filter(src=>(html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length!==1);
-  const markers=(html.match(/<!-- finance-build-injection-v7 -->/g)||[]).length;
-  if(missing.length||duplicate.length||markers!==1){
-    throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers);
-  }
-  console.log('BUILD VERIFY: finance injection OK; one owner, nine finance assets, one marker');
+  const markers=(html.match(/<!-- finance-build-injection-v8 -->/g)||[]).length;
+  if(missing.length||duplicate.length||markers!==1){throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers);}
+  console.log('BUILD VERIFY: finance injection OK; one owner, ten finance/management assets, one marker');
 }
 console.log('Role build injection completed; finance assets remain owned by finance-build-inject.js');
