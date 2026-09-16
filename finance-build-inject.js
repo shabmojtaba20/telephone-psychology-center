@@ -5,9 +5,9 @@ const version = process.env.BUILD_VERSION || new Date().toISOString().replace(/[
 const adminFile = path.join(root, 'admin-v5.html');
 if (!fs.existsSync(adminFile)) throw new Error('admin-v5.html not found');
 let adminHtml = fs.readFileSync(adminFile, 'utf8');
-const assets=['finance-tools','finance-dashboard','finance-manager-report','commission-rules','finance-receipt-preview','finance-audit-ledger','management-kpi-dashboard','management-kpi-charts','management-performance-dashboard'];
+const assets=['finance-tools','finance-dashboard','finance-manager-report','commission-rules','finance-receipt-preview','finance-audit-ledger','management-kpi-dashboard','management-kpi-charts','management-performance-dashboard','management-final-dashboard'];
 for(const a of assets) adminHtml=adminHtml.replace(new RegExp('\\s*<script[^>]+src=["\\\']\\/'+a+'\\.js(?:\\?[^"\\\']*)?["\\\'][^>]*><\\/script>','gi'),'');
-const adminMarker='<!-- finance-build-injection-v7 -->';
+const adminMarker='<!-- finance-build-injection-v8 -->';
 const adminScripts=`\n${adminMarker}\n${assets.map(a=>`<script src="/${a}.js?v=${version}"></script>`).join('\n')}`;
 if(!adminHtml.includes(adminMarker)) adminHtml=adminHtml.replace('</body>',`${adminScripts}\n</body>`); else adminHtml=adminHtml.replace(/<!-- finance-build-injection-v\d+ -->[\s\S]*?<\/body>/i,`${adminScripts}\n</body>`);
 fs.writeFileSync(adminFile,adminHtml,'utf8');
