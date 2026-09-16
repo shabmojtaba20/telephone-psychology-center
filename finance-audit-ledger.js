@@ -1,0 +1,22 @@
+(()=>{
+const db=window.supabaseClient||window.db||window.supabase;
+if(!db||!document.body)return;
+const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>Number(n||0).toLocaleString('fa-IR');
+const fmt=d=>d?new Date(d).toLocaleString('fa-IR'):'—';
+const style=`<style id="finance-audit-ledger-style">.fal-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 4px 18px #10182808}.fal-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.fal-toolbar h2{margin-left:auto}.fal-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.fal-filters label{font-size:13px}.fal-filters input,.fal-filters select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d6dbe5;border-radius:9px;margin-top:5px;font:inherit}.fal-table{overflow:auto}.fal-table table{width:100%;border-collapse:collapse;min-width:1100px}.fal-table th,.fal-table td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:right;vertical-align:top}.fal-badge{display:inline-block;padding:4px 9px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:12px}.fal-json{max-width:320px;max-height:110px;overflow:auto;background:#f8fafc;border-radius:8px;padding:7px;font:11px monospace;direction:ltr;text-align:left;white-space:pre-wrap}.fal-muted{color:#667085;font-size:13px}@media(max-width:800px){.fal-filters{grid-template-columns:1fr 1fr}}@media(max-width:550px){.fal-filters{grid-template-columns:1fr}}</style>`;
+document.head.insertAdjacentHTML('beforeend',style);
+const host=document.createElement('section');host.className='fal-card';host.innerHTML=`<div class="fal-toolbar"><h2>🛡️ دفتر حسابرسی مالی</h2><span id="falCount" class="fal-badge">۰ رویداد</span><button id="falRefresh" class="btn">🔄 بروزرسانی</button></div><p class="fal-muted">تمام تصمیم‌ها و تغییرات حساس مالی به‌صورت زمان‌دار و با اطلاعات قبل/بعد قابل پیگیری هستند.</p><div class="fal-filters"><label>از تاریخ<input id="falFrom" type="date"></label><label>تا تاریخ<input id="falTo" type="date"></label><label>نوع موجودیت<select id="falEntity"><option value="">همه</option><option value="payment_receipt">رسید پرداخت</option><option value="finance_transaction">تراکنش مالی</option><option value="expense">هزینه</option><option value="consultant_settlement">تسویه مشاور</option><option value="invoice">صورتحساب</option></select></label><label>عملیات<select id="falAction"><option value="">همه</option><option value="approved">تأیید</option><option value="rejected">رد</option><option value="created">ایجاد</option><option value="updated">ویرایش</option><option value="deleted">حذف</option></select></label></div><div class="fal-table" style="margin-top:14px"><table><thead><tr><th>زمان</th><th>عملیات</th><th>موجودیت</th><th>شناسه</th><th>کاربر</th><th>قبل</th><th>بعد</th><th>یادداشت</th></tr></thead><tbody id="falRows"><tr><td colspan="8">در حال بارگذاری...</td></tr></tbody></table></div>`;
+const anchor=document.querySelector('main')||document.body;anchor.appendChild(host);
+const labelAction=a=>({approved:'تأیید',rejected:'رد',created:'ایجاد',updated:'ویرایش',deleted:'حذف'}[a]||a||'—');
+const labelEntity=e=>({payment_receipt:'رسید پرداخت',finance_transaction:'تراکنش مالی',expense:'هزینه',consultant_settlement:'تسویه مشاور',invoice:'صورتحساب'}[e]||e||'—');
+const json=v=>v?`<div class="fal-json">${esc(JSON.stringify(v,null,2))}</div>`:'—';
+async function load(){
+ const from=$('falFrom').value?$('falFrom').value+'T00:00:00':null,to=$('falTo').value?$('falTo').value+'T23:59:59.999':null;
+ const {data,error}=await db.rpc('get_finance_audit_logs',{p_from:from,p_to:to,p_entity_type:$('falEntity').value||null,p_action:$('falAction').value||null,p_limit:500});
+ if(error){$('falRows').innerHTML=`<tr><td colspan="8">${esc(error.message)}</td></tr>`;return}
+ const rows=data||[];$('falCount').textContent=money(rows.length)+' رویداد';
+ $('falRows').innerHTML=rows.length?rows.map(x=>`<tr><td>${fmt(x.created_at)}</td><td><span class="fal-badge">${esc(labelAction(x.action))}</span></td><td>${esc(labelEntity(x.entity_type))}</td><td>${esc(x.entity_id||'—')}</td><td>${esc(x.actor_id||'—')}</td><td>${json(x.before_data)}</td><td>${json(x.after_data)}</td><td>${esc(x.note||'—')}</td></tr>`).join(''):'<tr><td colspan="8">رویدادی برای این فیلتر وجود ندارد.</td></tr>';
+}
+['falFrom','falTo','falEntity','falAction'].forEach(id=>$(id).addEventListener('change',load));$('falRefresh').addEventListener('click',load);load();
+})();
