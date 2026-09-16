@@ -11,8 +11,8 @@ let adminHtml = fs.readFileSync(adminFile, 'utf8');
 adminHtml = adminHtml.replace(/\s*<script[^>]+src=["']\/finance-(?:tools|dashboard|manager-report)\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi, '');
 adminHtml = adminHtml.replace(/\s*<script[^>]+src=["']\/commission-rules\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi, '');
 adminHtml = adminHtml.replace(/\s*<script[^>]+src=["']\/finance-receipt-preview\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi, '');
-const adminMarker = '<!-- finance-build-injection-v3 -->';
-const adminScripts = `\n${adminMarker}\n<script src="/finance-tools.js?v=${version}"></script>\n<script src="/finance-dashboard.js?v=${version}"></script>\n<script src="/finance-manager-report.js?v=${version}"></script>\n<script src="/commission-rules.js?v=${version}"></script>\n<script src="/finance-receipt-preview.js?v=${version}"></script>`;
+const adminMarker = '<!-- finance-build-injection-v4 -->';
+const adminScripts = `\n${adminMarker}\n<script src="/finance-tools.js?v=${version}"></script>\n<script src="/finance-dashboard.js?v=${version}"></script>\n<script src="/finance-manager-report.js?v=${version}"></script>\n<script src="/commission-rules.js?v=${version}"></script>\n<script src="/finance-receipt-preview.js?v=${version}"></script>\n<script src="/finance-audit-ledger.js?v=${version}"></script>`;
 if (!adminHtml.includes(adminMarker)) adminHtml = adminHtml.replace('</body>', `${adminScripts}\n</body>`);
 else adminHtml = adminHtml.replace(/<!-- finance-build-injection-v\d+ -->[\s\S]*?<\/body>/i, `${adminScripts}\n</body>`);
 fs.writeFileSync(adminFile, adminHtml, 'utf8');
@@ -26,6 +26,17 @@ if (fs.existsSync(reportFile)) {
   if (!reportHtml.includes(reportMarker)) reportHtml = reportHtml.replace('</body>', `${reportScript}\n</body>`);
   else reportHtml = reportHtml.replace(reportMarker, `${reportMarker}\n<script src="/advanced-finance-report.js?v=${version}"></script>`);
   fs.writeFileSync(reportFile, reportHtml, 'utf8');
+}
+
+const auditFile = path.join(root, 'finance-audit.html');
+if (fs.existsSync(auditFile)) {
+  let auditHtml = fs.readFileSync(auditFile, 'utf8');
+  auditHtml = auditHtml.replace(/\s*<script[^>]+src=["']\/finance-audit-ledger\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi, '');
+  const auditMarker = '<!-- finance-audit-ledger-injection -->';
+  const auditScript = `\n${auditMarker}\n<script src="/finance-audit-ledger.js?v=${version}"></script>`;
+  if (!auditHtml.includes(auditMarker)) auditHtml = auditHtml.replace('</body>', `${auditScript}\n</body>`);
+  else auditHtml = auditHtml.replace(auditMarker, `${auditMarker}\n<script src="/finance-audit-ledger.js?v=${version}"></script>`);
+  fs.writeFileSync(auditFile, auditHtml, 'utf8');
 }
 
 console.log('FINANCE BUILD: finance assets injected with cache version ' + version);
