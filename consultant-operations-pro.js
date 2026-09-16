@@ -1,29 +1,11 @@
 (function(){
-const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co',SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
-let db;
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function money(v){return Number(v||0).toLocaleString('fa-IR')}
-function dt(v){try{return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tehran'}).format(new Date(v))}catch{return v||'—'}}
-async function init(){
- if(!window.supabase||!document.getElementById('app'))return;
- db=window.supabase.createClient(SB_URL,SB_KEY);
- const root=document.getElementById('appointments'); if(!root||document.getElementById('consultantOpsPro'))return;
- const box=document.createElement('section'); box.id='consultantOpsPro'; box.className='card section';
- box.innerHTML='<h2>🩺 عملیات حرفه‌ای مشاور</h2><div id="copMsg" class="muted">در حال بارگذاری اطلاعات عملیاتی...</div><div id="copStats" class="finance"></div><div id="copList"></div>';
- root.insertBefore(box,root.firstChild);
- const [dash,apps,fin]=await Promise.all([
-  db.rpc('get_my_consultant_dashboard'),
-  db.rpc('get_my_consultant_appointments_v2'),
-  db.rpc('get_my_consultant_financial_summary')
- ]);
- if(dash.error){box.querySelector('#copMsg').textContent='دسترسی مشاور هنوز به حساب کاربری متصل نشده است.';return}
- const d=(dash.data||[])[0]||{}; const a=apps.data||[]; const f=(fin.data||[])[0]||{};
- box.querySelector('#copMsg').textContent=`مشاور: ${esc(d.consultant_name||'—')} | تخصص: ${esc(d.specialty||'—')}`;
- box.querySelector('#copStats').innerHTML=`<div class="mini"><b>جلسات ثبت‌شده</b><br>${money(f.appointment_count)}</div><div class="mini"><b>جلسات پرداخت‌شده</b><br>${money(f.paid_count)}</div><div class="mini"><b>مبلغ کل جلسات</b><br>${money(f.total_amount)} تومان</div><div class="mini"><b>درآمد پرداخت‌شده</b><br>${money(f.paid_amount)} تومان</div>`;
- const serviceIds=[...new Set(a.map(x=>x.service_id).filter(Boolean))]; let services={};
- if(serviceIds.length){const r=await db.from('services').select('id,name,duration_minutes,price').in('id',serviceIds);(r.data||[]).forEach(s=>services[s.id]=s)}
- const upcoming=a.filter(x=>new Date(x.scheduled_at)>=new Date()&&x.status!=='cancelled').slice(0,8);
- box.querySelector('#copList').innerHTML=upcoming.length?upcoming.map(x=>{const s=services[x.service_id]||{};return `<div class="appointment"><div class="appointment-head"><div><b>${dt(x.scheduled_at)}</b><div class="muted">${esc(s.name||'خدمت ثبت‌شده')} ${s.duration_minutes?`· ${s.duration_minutes} دقیقه`:''}</div></div><span class="badge ${x.payment_status==='paid'?'ok':''}">${esc(x.status||'—')}</span></div><div class="reason">${esc(x.client_reason||'دلیل مراجعه ثبت نشده')}</div><div class="muted" style="margin-top:7px">مبلغ: ${money(x.amount)} تومان · پرداخت: ${esc(x.payment_status||'—')}</div></div>`}).join(''):'<div class="empty">نوبت آینده‌ای برای نمایش وجود ندارد.</div>';
+const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co',SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';let db;
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function money(v){return Number(v||0).toLocaleString('fa-IR')}function dt(v){try{return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tehran'}).format(new Date(v))}catch{return v||'—'}}
+async function init(){if(!window.supabase||!document.getElementById('app'))return;db=window.supabase.createClient(SB_URL,SB_KEY);const root=document.getElementById('appointments');if(!root||document.getElementById('consultantOpsPro'))return;const box=document.createElement('section');box.id='consultantOpsPro';box.className='card section';box.innerHTML='<h2>🩺 عملیات حرفه‌ای مشاور</h2><div id="copMsg" class="muted">در حال بارگذاری اطلاعات عملیاتی...</div><div id="copStats" class="finance"></div><div id="copList"></div>';root.insertBefore(box,root.firstChild);
+ const [dash,apps,fin]=await Promise.all([db.rpc('get_my_consultant_dashboard'),db.rpc('get_my_consultant_appointments_v2'),db.rpc('get_my_consultant_financial_summary')]);if(dash.error){box.querySelector('#copMsg').textContent='دسترسی مشاور هنوز به حساب کاربری متصل نشده است.';return}const d=(dash.data||[])[0]||{},a=apps.data||[],f=(fin.data||[])[0]||{};box.querySelector('#copMsg').textContent=`مشاور: ${esc(d.consultant_name||'—')} | تخصص: ${esc(d.specialty||'—')}`;box.querySelector('#copStats').innerHTML=`<div class="mini"><b>جلسات ثبت‌شده</b><br>${money(f.appointment_count)}</div><div class="mini"><b>جلسات پرداخت‌شده</b><br>${money(f.paid_count)}</div><div class="mini"><b>مبلغ کل جلسات</b><br>${money(f.total_amount)} تومان</div><div class="mini"><b>درآمد پرداخت‌شده</b><br>${money(f.paid_amount)} تومان</div>`;
+ const serviceIds=[...new Set(a.map(x=>x.service_id).filter(Boolean))];let services={};if(serviceIds.length){const r=await db.from('services').select('id,name,duration_minutes,price').in('id',serviceIds);(r.data||[]).forEach(s=>services[s.id]=s)}
+ const upcoming=a.filter(x=>new Date(x.scheduled_at)>=new Date()&&x.status!=='cancelled').slice(0,8);box.querySelector('#copList').innerHTML=upcoming.length?upcoming.map(x=>{const s=services[x.service_id]||{};let action='';if(x.status==='confirmed'&&['paid','completed'].includes(x.payment_status))action='<button class="btn green" data-start="'+x.id+'">▶️ شروع جلسه</button>';if(x.status==='in_progress')action='<button class="btn green" data-complete="'+x.id+'">✅ پایان جلسه</button>';return `<div class="appointment"><div class="appointment-head"><div><b>${dt(x.scheduled_at)}</b><div class="muted">${esc(s.name||'خدمت ثبت‌شده')} ${s.duration_minutes?`· ${s.duration_minutes} دقیقه`:''}</div></div><span class="badge ${x.payment_status==='paid'?'ok':''}">${esc(x.status||'—')}</span></div><div class="reason">${esc(x.client_reason||'دلیل مراجعه ثبت نشده')}</div><div class="muted" style="margin-top:7px">مبلغ: ${money(x.amount)} تومان · پرداخت: ${esc(x.payment_status||'—')}</div><div class="actions" style="margin-top:10px">${action}</div></div>`}).join(''):'<div class="empty">نوبت آینده‌ای برای نمایش وجود ندارد.</div>';
+ box.querySelectorAll('[data-start]').forEach(b=>b.onclick=async()=>{b.disabled=true;const r=await db.rpc('start_my_consultant_session',{p_appointment_id:b.dataset.start});if(r.error){box.querySelector('#copMsg').textContent='شروع جلسه انجام نشد: '+r.error.message;b.disabled=false}else{box.querySelector('#copMsg').textContent='جلسه شروع شد.';init()}});
+ box.querySelectorAll('[data-complete]').forEach(b=>b.onclick=async()=>{const note=prompt('یادداشت نهایی جلسه را وارد کنید:');if(note===null)return;b.disabled=true;const r=await db.rpc('complete_my_consultant_session',{p_appointment_id:b.dataset.complete,p_notes:note});if(r.error){box.querySelector('#copMsg').textContent='پایان جلسه انجام نشد: '+r.error.message;b.disabled=false}else{box.querySelector('#copMsg').textContent='جلسه با موفقیت پایان یافت و یادداشت ثبت شد.';init()}});
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,350),{once:true});else setTimeout(init,350);
-})();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,350),{once:true});else setTimeout(init,350);})();
