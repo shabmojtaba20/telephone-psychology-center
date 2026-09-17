@@ -1,0 +1,1 @@
+Deploy latest main branch. Learner dashboard added at /my-learning.html for authenticated users to view purchased educational content, workshop registrations, attendance, and issued certificates.
