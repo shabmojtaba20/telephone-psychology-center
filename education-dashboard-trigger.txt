@@ -1,0 +1,2 @@
+Cloudflare production deployment trigger — 2026-09-17 23:30
+Deploy latest main branch: add professional Education Management Dashboard (education-dashboard.html) with real Supabase KPIs, content/workshop status, registrations and educational revenue; protected by content.manage permission.
