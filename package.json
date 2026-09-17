@@ -3,6 +3,6 @@
   "version": "1.0.5",
   "private": true,
   "scripts": {
-    "build": "node build.js && node education-build.js && node finance-build-inject.js && node role-inject.js && node final-build-check.js"
+    "build": "node build.js && node education-build.js && node finance-build-inject.js && node panel-build-inject.js && node role-inject.js && node final-build-check.js"
   }
 }
