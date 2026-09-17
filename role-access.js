@@ -14,16 +14,17 @@
       if(rolesError) throw rolesError;
       if(!roles||!roles.length){await client.auth.signOut({scope:'local'});location.replace('/?login=1&error=no-role');return;}
       const roleNames=[...new Set(roles.map(r=>r.name).filter(Boolean))];
-      const active=sessionStorage.getItem('activeAdminRole');
-      const activeRole=active&&roleNames.includes(active)?active:roleNames[0];
+      const requested=new URLSearchParams(location.search).get('role');
+      const stored=sessionStorage.getItem('activeAdminRole');
+      const activeRole=requested&&roleNames.includes(requested)?requested:(stored&&roleNames.includes(stored)?stored:roleNames[0]);
       sessionStorage.setItem('activeAdminRole',activeRole);
       const permissions=new Set();
-      for(const page of Object.keys(RULES)) for(const permission of RULES[page]){
+      if(activeRole==='super_admin') permissions.add('*');
+      else for(const page of Object.keys(RULES)) for(const permission of RULES[page]){
         const {data,error}=await client.rpc('has_admin_role_permission',{p_role:activeRole,p_permission:permission});
         if(!error&&data===true)permissions.add(permission);
       }
-      if(activeRole==='super_admin')permissions.add('*');
-      const allowed=new Set(Object.keys(RULES).filter(page=>page==='dashboard'?(permissions.has('dashboard.view')||permissions.has('*')):(RULES[page]||[]).some(p=>permissions.has(p))||permissions.has('*')));
+      const allowed=new Set(Object.keys(RULES).filter(page=>permissions.has('*')||(page==='dashboard'?permissions.has('dashboard.view'):(RULES[page]||[]).some(p=>permissions.has(p)))));
       document.documentElement.dataset.roles=roleNames.join(',');
       document.documentElement.dataset.activeRole=activeRole;
       window.__adminRoles=roleNames;window.__adminPermissions=permissions;window.__adminAllowedPages=allowed;
