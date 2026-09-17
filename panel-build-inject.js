@@ -9,6 +9,11 @@ for(const name of files){
  h=h.replace(/\s*<script[^>]+src=["']\/panel-persian-calendar\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi,'');
  const tag=`<script src="/panel-persian-calendar.js?v=${version}"></script>`;
  h=h.includes('</head>')?h.replace('</head>',`\n<!-- panel-persian-calendar -->\n${tag}\n</head>`):h.replace('</body>',`\n<!-- panel-persian-calendar -->\n${tag}\n</body>`);
+ if(name==='admin-v5.html'){
+   const quick=`<script src="/finance-quick-access.js?v=${version}"></script>`;
+   h=h.replace(/\s*<script[^>]+src=["']\/finance-quick-access\.js(?:\?[^"']*)?["'][^>]*><\/script>/gi,'');
+   h=h.replace('</body>',`\n<!-- finance-quick-access -->\n${quick}\n</body>`);
+ }
  fs.writeFileSync(file,h,'utf8');
 }
-console.log('PANEL BUILD: Persian calendar injected into management panels');
+console.log('PANEL BUILD: Persian calendar and finance shortcuts injected into management panels');
