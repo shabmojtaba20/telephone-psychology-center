@@ -48,7 +48,7 @@ if(fs.existsSync(financePath)){
   const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js','/management-final-dashboard.js'];
   const missing=required.filter(src=>!html.includes(src));
   const duplicate=required.filter(src=>(html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length!==1);
-  const markers=(html.match(/<!-- finance-build-injection-v8 -->/g)||[]).length;
+  const markers=(html.match(/<!-- finance-build-injection-v\d+ -->/g)||[]).length;
   if(missing.length||duplicate.length||markers!==1){throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers);}
   console.log('BUILD VERIFY: finance injection OK; one owner, ten finance/management assets, one marker');
 }
