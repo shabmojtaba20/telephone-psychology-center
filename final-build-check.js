@@ -58,7 +58,7 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
 }
 
 const allHtml = [indexHtml, financeReports, financeAudit, admin];
-const markerCount = allHtml.reduce((sum, html) => sum + (html.match(/finance-build-injection-v8/g) || []).length, 0);
+const markerCount = allHtml.reduce((sum, html) => sum + (html.match(/finance-build-injection-v\d+/g) || []).length, 0);
 if (markerCount !== 1) {
   throw new Error(`FINAL BUILD CHECK FAILED: expected exactly one finance injection marker, found ${markerCount}`);
 }
