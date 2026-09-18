@@ -1,0 +1,8 @@
+-- Accounting document lifecycle migration
+-- Implemented directly in production:
+-- * finance_documents status: draft -> approved -> posted -> voided
+-- * approval/post/void RPCs
+-- * reversal document on void
+-- * immutable posted/voided documents and lines
+-- * audit trail retrieval
+-- * workflow listing RPC
