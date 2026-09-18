@@ -1,0 +1,4 @@
+-- Applied migration: connect_detail_ledger_to_advanced_reports
+-- Supabase project: aserkyiwwyggtixckjsv
+-- Adds get_finance_advanced_ledger_report() for trial balance, party detail balances,
+-- client receivables, and consultant balances. Date range applies to posted documents.
