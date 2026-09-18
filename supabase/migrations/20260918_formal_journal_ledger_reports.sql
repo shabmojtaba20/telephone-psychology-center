@@ -1,0 +1,3 @@
+-- Applied migration: formal_journal_and_ledger_reports
+-- Adds get_finance_journal_ledger_report(p_from,p_to,p_account_id)
+-- Journal + running-balance general ledger, posted documents only.
