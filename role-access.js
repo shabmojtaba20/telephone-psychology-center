@@ -1,7 +1,7 @@
 (function(){
   const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
   const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
-  const RULES={dashboard:['dashboard.view'],general:['general.manage'],appearance:['appearance.manage'],media:['media.manage'],contact:['contact.manage'],consultants:['consultants.manage'],availability:['availability.manage'],appointments:['appointments.manage'],services:['services.manage'],finance:['finance.view','finance.manage'],bank:['bank.manage'],gateways:['gateways.manage'],messages:['messages.manage'],content:['content.manage'],notifications:['notifications.manage'],security:['security.manage']};
+  const RULES={dashboard:['dashboard.view'],general:['general.manage'],appearance:['appearance.manage'],media:['media.manage'],contact:['contact.manage'],consultants:['consultants.manage'],availability:['availability.manage'],appointments:['appointments.manage'],services:['services.manage'],finance:['finance.view','finance.manage'],bank:['bank.manage'],gateways:['gateways.manage'],messages:['messages.manage'],content:['content.manage'],education:['education.manage'],notifications:['notifications.manage'],security:['security.manage']};
   let db;
   const create=()=>db||(db=window.supabase.createClient(SB_URL,SB_KEY));
   const goLogin=()=>location.replace('/?login=1&returnTo='+encodeURIComponent(location.pathname+location.search));
