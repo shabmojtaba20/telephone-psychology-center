@@ -1,0 +1,4 @@
+-- Consultant settlement accounting
+-- Approval: 5200 expense -> consultant level-3 payable account
+-- Payment: consultant level-3 payable account -> 1100 bank
+-- Applied to Supabase as connect_consultant_settlements_to_detail_ledger
