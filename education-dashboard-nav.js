@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const URL='/education-dashboard.html';
+  const URL='/education-dashboard/';
   async function init(){
     const nav=document.querySelector('.nav');
     if(!nav) return;
