@@ -1,0 +1,2 @@
+-- Finance party subledger: consultant/client detail accounts
+-- Applied to Supabase project as migration add_finance_parties_and_detail_ledger
