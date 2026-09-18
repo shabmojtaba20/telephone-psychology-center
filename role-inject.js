@@ -30,7 +30,7 @@ const financeBankFix='<script src="/finance-bank-settings-fix.js?v=1"></script>'
 const financeReportAccessFix='<script src="/finance-report-access-fix.js?v=1"></script>';
 const financeReceiptIntegrity='<script src="/finance-receipt-integrity.js?v=1"></script>';
 const workshopAdminPlus='<script src="/workshop-admin-plus.js?v=1"></script>';
-const educationDashboardNav='<script src="/education-dashboard-nav.js?v=1"></script>';
+const educationDashboardNav='<script src="/education-dashboard-nav.js?v=2"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
 const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
