@@ -1,0 +1,7 @@
+-- Finance accounting automation hardening
+-- Applied to Supabase project aserkyiwwyggtixckjsv.
+-- Automatic journal creation is triggered by:
+--   public.finance_transactions -> private.auto_account_transaction_trigger
+--   public.expenses -> private.auto_account_expense_trigger
+-- The private accounting functions create balanced posted documents,
+-- prevent duplicates, and reject entries into closed finance periods.
