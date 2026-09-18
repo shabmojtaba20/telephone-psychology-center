@@ -1,0 +1,4 @@
+-- Applied migration: formal_financial_reports_trial_balance
+-- Supabase project: aserkyiwwyggtixckjsv
+-- Adds get_finance_formal_reports(p_from,p_to,p_level): formal balance sheet,
+-- income statement, and trial balance at total/subsidiary/detail levels.
