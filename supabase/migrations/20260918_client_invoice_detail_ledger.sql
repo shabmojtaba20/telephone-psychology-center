@@ -1,0 +1,8 @@
+-- Applied migration: connect_client_invoice_and_payment_to_detail_ledger
+-- Supabase project: aserkyiwwyggtixckjsv
+--
+-- Client subledger accounting:
+-- 1) Issued/paid invoice => debit client detail / credit 4100 revenue.
+-- 2) Approved payment transaction => debit 1100 bank / credit client detail.
+-- 3) Client detail party/account is created automatically when needed under 1200.
+-- 4) Duplicate accruals and closed-period postings are blocked.
