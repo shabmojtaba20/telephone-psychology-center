@@ -8,6 +8,10 @@ const start=()=>{
   const btn=document.getElementById('bookBtn');
   if(!btn||btn.dataset.stage11Order==='1')return;
   btn.dataset.stage11Order='1';
+  const supportWrap=document.createElement('div');
+  supportWrap.style.cssText='margin:12px 0;padding:12px;border:1px solid #dbe4ee;border-radius:12px;background:#f8fafc;';
+  supportWrap.innerHTML='<label style="display:block;font-weight:700;margin-bottom:7px">آیا معرفی‌نامه یا حمایت سازمانی دارید؟</label><input id="supportReferralCode" type="text" inputmode="text" autocomplete="off" placeholder="کد معرفی‌نامه را وارد کنید (اختیاری)" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"><small style="display:block;margin-top:6px;color:#64748b">در صورت معتبر بودن کد، تخفیف یا حمایت سازمانی هنگام رزرو محاسبه می‌شود.</small>';
+  btn.parentElement?.insertBefore(supportWrap,btn);
   btn.addEventListener('click',async e=>{
     e.preventDefault();e.stopImmediatePropagation();
     const {data:{user}}=await db.auth.getUser();
@@ -20,10 +24,11 @@ const start=()=>{
     const slotId=document.getElementById('slot')?.value;
     const reason=document.getElementById('clientReason')?.value||'';
     const notes=document.getElementById('notes')?.value||'';
+    const supportReferralCode=document.getElementById('supportReferralCode')?.value?.trim()||null;
     if(!serviceId||!consultantId||!slotId){say('لطفاً خدمت، مشاور و نوبت را کامل انتخاب کنید.');return;}
     btn.disabled=true;const old=btn.textContent;btn.textContent='در حال ثبت سفارش…';
     try{
-      const {data,error}=await db.rpc('create_multi_session_booking',{p_service_id:serviceId,p_consultant_id:consultantId,p_slot_ids:[slotId],p_client_reason:reason,p_notes:notes});
+      const {data,error}=await db.rpc('create_multi_session_booking',{p_service_id:serviceId,p_consultant_id:consultantId,p_slot_ids:[slotId],p_client_reason:reason,p_notes:notes,p_support_referral_code:supportReferralCode});
       if(error)throw error;
       const row=Array.isArray(data)?data[0]:data;
       const orderId=row?.booking_order_id||row?.order_id||row?.id;
