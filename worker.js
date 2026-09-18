@@ -1,10 +1,10 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname.replace(/\\/+$/, "") || "/";
+    const path = url.pathname.replace(/\/+$/, "") || "/";
 
     // Canonical education dashboard aliases.
-    // All three public forms resolve to the same real HTML asset.
+    // All public forms resolve to the same real HTML asset.
     if (
       path === "/education-dashboard" ||
       path === "/education-dashboard.html" ||
@@ -22,8 +22,7 @@ export default {
       });
     }
 
-    // Explicitly support the directory-style URL without relying on
-    // Cloudflare's HTML handling mode.
+    // Explicitly support the directory-style URL.
     if (url.pathname === "/education-dashboard/") {
       const target = new URL("/education-dashboard.html", url);
       const response = await env.ASSETS.fetch(new Request(target, request));
