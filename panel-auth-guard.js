@@ -4,7 +4,7 @@
   const protectedExact = new Set([
     '/admin.html','/admin-v2.html','/admin-v3.html','/admin-v4.html','/admin-v5.html','/admin-professional.html','/admin-invoices.html',
     '/consultant-panel.html','/consultant-panel-professional.html','/consultant-settlements.html','/finance-audit.html','/finance-reports.html',
-    '/order-review.html','/payment.html','/card-payment.html','/submit-receipt.html'
+    '/education-dashboard.html','/education-dashboard/','/education-dashboard', '/order-review.html','/payment.html','/card-payment.html','/submit-receipt.html'
   ]);
   const protectedPrefixes = ['/admin/','/consultant/','/finance/'];
   if (!(protectedExact.has(path) || protectedPrefixes.some(p => path.startsWith(p)))) return;
@@ -15,6 +15,7 @@
   const ADMIN_PATHS=new Set(['/admin.html','/admin-v2.html','/admin-v3.html','/admin-v4.html','/admin-professional.html','/admin-invoices.html']);
   const FINANCE_PATHS=new Set(['/admin-v5.html','/finance-audit.html','/finance-reports.html']);
   const CONSULTANT_PATHS=new Set(['/consultant-panel.html','/consultant-panel-professional.html','/consultant-settlements.html']);
+  const EDUCATION_PATHS=new Set(['/education-dashboard.html','/education-dashboard','/education-dashboard/']);
   const CUSTOMER_PATHS=new Set(['/order-review.html','/payment.html','/card-payment.html','/submit-receipt.html']);
   const target=window.location.pathname+window.location.search+window.location.hash;
   const login=()=>window.location.replace('/?login=1&returnTo='+encodeURIComponent(target));
@@ -47,6 +48,17 @@
       }catch(_){ }
       if(consultantLinked)roleNames.push('consultant');
 
+      if(EDUCATION_PATHS.has(path)){
+        if(roleNames.includes('super_admin')||roleNames.includes('content_manager')){
+          document.documentElement.dataset.panelAuthenticated='true';
+          document.documentElement.dataset.panelAuthChecking='false';
+          document.documentElement.dataset.adminRoles=roleNames.join(',');
+          document.documentElement.dataset.activeRole=sessionStorage.getItem('activeAdminRole')||'content_manager';
+          return;
+        }
+        if(adminRoles.length){go(roleRoute(adminRoles[0]),adminRoles[0]);return;}
+        return login();
+      }
       if(CUSTOMER_PATHS.has(path)){
         document.documentElement.dataset.panelAuthenticated='true';
         document.documentElement.dataset.panelAuthChecking='false';
