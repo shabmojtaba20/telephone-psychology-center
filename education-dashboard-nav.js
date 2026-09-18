@@ -1,10 +1,20 @@
 (function(){
   'use strict';
   const URL='/education-dashboard/';
+  const PERMISSION='education.manage';
+  async function waitForAccess(){
+    for(let i=0;i<20;i++){
+      if(window.__adminPermissions instanceof Set) return window.__adminPermissions.has('*')||window.__adminPermissions.has(PERMISSION);
+      await new Promise(r=>setTimeout(r,100));
+    }
+    return false;
+  }
   async function init(){
     const nav=document.querySelector('.nav');
     if(!nav) return;
     try{
+      const allowed=await waitForAccess();
+      if(!allowed) return;
       if(nav.querySelector('[data-education-dashboard-link]')) return;
       const group=document.createElement('div');
       group.className='group';
@@ -18,6 +28,6 @@
       nav.insertBefore(group,nav.firstElementChild||null);
     }catch(e){console.warn('Education dashboard navigation unavailable',e);}
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(init,250));
-  else setTimeout(init,250);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+  else init();
 })();
