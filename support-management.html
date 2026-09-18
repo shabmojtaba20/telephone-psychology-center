@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مدیریت حمایت‌های سازمانی</title>
+<style>
+body{margin:0;background:#f5f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}.wrap{max-width:1250px;margin:auto;padding:20px}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:9px 13px;background:#4f46e5;color:#fff;cursor:pointer;text-decoration:none;font:inherit}.btn.alt{background:#eef2ff;color:#4338ca}.btn.red{background:#b91c1c}.btn.green{background:#15803d}
+.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.tab{padding:10px 14px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer}.tab.on{background:#4f46e5;color:#fff}
+.panel{display:none}.panel.on{display:block}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:17px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.field{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d7dce5;border-radius:9px;margin-top:5px;font:inherit}label{display:block;font-size:13px}.list{display:grid;gap:9px}.item{border:1px solid #e5e7eb;border-radius:12px;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.muted{color:#667085;font-size:13px}.badge{background:#eef2ff;color:#4338ca;border-radius:999px;padding:4px 8px;font-size:11px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px}.stat b{display:block;font-size:22px;margin-top:7px}.actions{display:flex;gap:6px;flex-wrap:wrap}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;border-bottom:1px solid #eee;text-align:right;font-size:13px}.tablewrap{overflow:auto}
+@media(max-width:800px){.grid,.stats{grid-template-columns:1fr}.tablewrap{overflow-x:auto}}
+</style></head>
+<body><main class="wrap">
+<div class="top"><div><h1>🤝 مدیریت حمایت‌های سازمانی</h1><p class="muted">سازمان‌ها، معرفی‌نامه‌ها، افراد تحت حمایت، سهمیه و مطالبات سازمانی</p></div>
+<div><a class="btn alt" href="/admin-professional.html">پنل مدیریت</a> <a class="btn alt" href="/finance-advanced.html">گزارش مالی</a></div></div>
+
+<div class="stats"><div class="stat">سازمان‌های فعال<b id="sOrg">۰</b></div><div class="stat">افراد تحت حمایت<b id="sBen">۰</b></div><div class="stat">معرفی‌نامه معتبر<b id="sRef">۰</b></div><div class="stat">مطالبات سازمان‌ها<b id="sClaim">۰</b></div></div>
+
+<div class="tabs">
+<button class="tab on" data-p="orgs">🏢 سازمان‌ها</button><button class="tab" data-p="beneficiaries">👥 افراد تحت حمایت</button>
+<button class="tab" data-p="referrals">🎫 معرفی‌نامه‌ها</button><button class="tab" data-p="claims">💰 مطالبات و تسویه</button>
+</div>
+
+<section id="orgs" class="panel on"><div class="card"><h2>افزودن سازمان</h2><div class="grid">
+<label>نام سازمان<input id="oname" class="field"></label><label>کد سازمان<input id="ocode" class="field"></label>
+<label>نوع حمایت<select id="otype" class="field"><option value="percent">درصدی</option><option value="free">رایگان</option><option value="fixed">مبلغ ثابت</option></select></label>
+<label>درصد حمایت<input id="opercent" class="field" type="number" min="0" max="100" value="0"></label>
+<label>مبلغ ثابت<input id="oamount" class="field" type="number" min="0" value="0"></label>
+<label>سقف جلسات سالانه<input id="olimit" class="field" type="number" min="0" placeholder="خالی = بدون سقف"></label>
+<label>شروع قرارداد<input id="ostart" class="field" type="date"></label><label>پایان قرارداد<input id="oend" class="field" type="date"></label>
+</div><br><button class="btn" id="saveOrg">ثبت سازمان</button></div>
+<div class="card"><h2>سازمان‌ها</h2><div id="orgList" class="list">در حال بارگذاری...</div></div></section>
+
+<section id="beneficiaries" class="panel"><div class="card"><h2>ثبت فرد تحت حمایت</h2><div class="grid">
+<label>سازمان<select id="bOrg" class="field"></select></label><label>نام و نام خانوادگی<input id="bname" class="field"></label>
+<label>موبایل<input id="bmobile" class="field"></label><label>کد ملی<input id="bnid" class="field"></label>
+<label>کد عضویت سازمان<input id="bcode" class="field"></label><label>سقف جلسات<input id="blimit" class="field" type="number"></label>
+<label>شروع اعتبار<input id="bfrom" class="field" type="date"></label><label>پایان اعتبار<input id="buntil" class="field" type="date"></label>
+</div><br><button class="btn" id="saveBen">ثبت فرد</button></div><div class="card"><h2>افراد تحت حمایت</h2><div class="tablewrap"><table><thead><tr><th>نام</th><th>سازمان</th><th>وضعیت</th><th>سهمیه</th><th>استفاده</th></tr></thead><tbody id="benBody"></tbody></table></div></div></section>
+
+<section id="referrals" class="panel"><div class="card"><h2>صدور معرفی‌نامه</h2><div class="grid">
+<label>سازمان<select id="rOrg" class="field"></select></label><label>فرد تحت حمایت<select id="rBen" class="field"></select></label>
+<label>نام مراجعه‌کننده<input id="rname" class="field"></label><label>موبایل<input id="rmobile" class="field"></label>
+<label>نوع حمایت<select id="rtype" class="field"><option value="percent">درصدی</option><option value="free">رایگان</option><option value="fixed">مبلغ ثابت</option></select></label>
+<label>درصد<input id="rpercent" class="field" type="number" min="0" max="100" value="0"></label>
+<label>مبلغ حمایت<input id="ramount" class="field" type="number" value="0"></label><label>سقف جلسات<input id="rlimit" class="field" type="number"></label>
+<label>شروع اعتبار<input id="rfrom" class="field" type="date"></label><label>پایان اعتبار<input id="runtil" class="field" type="date"></label>
+</div><br><button class="btn" id="saveRef">صدور معرفی‌نامه</button></div>
+<div class="card"><h2>معرفی‌نامه‌ها</h2><div class="tablewrap"><table><thead><tr><th>کد</th><th>سازمان</th><th>مراجع</th><th>حمایت</th><th>وضعیت</th><th>اعتبار</th></tr></thead><tbody id="refBody"></tbody></table></div></div></section>
+
+<section id="claims" class="panel"><div class="card"><h2>مطالبات سازمان‌ها</h2><div class="grid"><label>سازمان<select id="qOrg" class="field"><option value="">همه سازمان‌ها</option></select></label><label>از تاریخ<input id="qFrom" class="field" type="date"></label><label>تا تاریخ<input id="qTo" class="field" type="date"></label></div><br><button class="btn" id="loadClaims">گزارش</button></div>
+<div class="card"><div id="claimSummary" class="muted">گزارش هنوز بارگذاری نشده است.</div><div class="tablewrap"><table><thead><tr><th>سازمان</th><th>نوبت</th><th>قیمت</th><th>حمایت</th><th>طلب سازمان</th><th>وضعیت</th></tr></thead><tbody id="claimBody"></tbody></table></div></div></section>
+</main>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const supabase=createClient('https://aserkyiwwyggtixckjsv.supabase.co','SUPABASE_ANON_KEY');
+const $=id=>document.getElementById(id), fmt=n=>Number(n||0).toLocaleString('fa-IR')+' تومان';
+async function guard(){const {data:{user}}=await supabase.auth.getUser();if(!user){location.href='/admin.html';return false}return true}
+function tabs(){document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.p).classList.add('on')})}
+async function loadOrgs(){const {data,error}=await supabase.from('support_organizations').select('*').order('created_at',{ascending:false});if(error){$('orgList').textContent=error.message;return} $('sOrg').textContent=data.filter(x=>x.is_active).length.toLocaleString('fa-IR');$('orgList').innerHTML=data.map(x=>'<div class="item"><div><b>'+x.name+'</b><div class="muted">کد: '+(x.code||'—')+' | حمایت: '+(x.default_support_type==='free'?'رایگان':x.default_support_type==='percent'?x.default_discount_percent+'٪':'مبلغ ثابت '+fmt(x.default_support_amount))+'</div></div><span class="badge">'+(x.is_active?'فعال':'غیرفعال')+'</span></div>').join('')||'سازمانی ثبت نشده است';['bOrg','rOrg','qOrg'].forEach(id=>{const el=$(id),old=el.value;el.innerHTML=(id==='qOrg'?'<option value="">همه سازمان‌ها</option>':'')+data.map(x=>'<option value="'+x.id+'">'+x.name+'</option>').join('');el.value=old})}
+async function loadBen(){const {data,error}=await supabase.from('support_beneficiaries').select('*,support_organizations(name)').order('created_at',{ascending:false});if(error){$('benBody').innerHTML='<tr><td colspan="5">'+error.message+'</td></tr>';return}$('sBen').textContent=data.length.toLocaleString('fa-IR');$('benBody').innerHTML=data.map(x=>'<tr><td>'+x.full_name+'</td><td>'+x.support_organizations?.name+'</td><td>'+x.status+'</td><td>'+(x.session_limit??'∞')+'</td><td>'+x.sessions_used+'</td></tr>').join('')||'<tr><td colspan="5">موردی نیست</td></tr>'; $('rBen').innerHTML='<option value="">بدون اتصال مستقیم</option>'+data.map(x=>'<option value="'+x.id+'">'+x.full_name+' — '+x.support_organizations?.name+'</option>').join('')}
+async function loadRefs(){const {data,error}=await supabase.from('support_referrals').select('*,support_organizations(name)').order('created_at',{ascending:false});if(error){$('refBody').innerHTML='<tr><td colspan="6">'+error.message+'</td></tr>';return}$('sRef').textContent=data.filter(x=>['pending','approved'].includes(x.status)).length.toLocaleString('fa-IR');$('refBody').innerHTML=data.map(x=>'<tr><td><b>'+x.referral_code+'</b></td><td>'+x.support_organizations?.name+'</td><td>'+x.referred_full_name+'</td><td>'+ (x.support_type==='free'?'رایگان':x.support_type==='percent'?x.discount_percent+'٪':fmt(x.support_amount))+'</td><td>'+x.status+'</td><td>'+x.valid_from+' تا '+(x.valid_until||'بدون انقضا')+'</td></tr>').join('')||'<tr><td colspan="6">موردی نیست</td></tr>'}
+async function loadClaims(){const {data,error}=await supabase.rpc('get_support_organization_finance_report',{p_organization_id:$('qOrg').value||null,p_from:$('qFrom').value||null,p_to:$('qTo').value||null});if(error){$('claimSummary').textContent=error.message;return}const d=data||{};$('sClaim').textContent=fmt(d.total_pending);$('claimSummary').innerHTML='کل مطالبات: <b>'+fmt(d.total_claimed)+'</b> | دریافت‌شده: <b>'+fmt(d.total_received)+'</b> | مانده/در انتظار: <b>'+fmt(d.total_pending)+'</b>';const rows=d.rows||[];$('claimBody').innerHTML=rows.map(x=>'<tr><td>'+x.organization_id+'</td><td>'+x.appointment_id+'</td><td>'+fmt(x.list_price)+'</td><td>'+fmt(x.support_amount)+'</td><td>'+fmt(x.organization_receivable)+'</td><td>'+x.claim_status+'</td></tr>').join('')||'<tr><td colspan="6">موردی نیست</td></tr>'}
+$('saveOrg').onclick=async()=>{const type=$('otype').value;const {error}=await supabase.from('support_organizations').insert({name:$('oname').value.trim(),code:$('ocode').value.trim()||null,default_support_type:type,default_discount_percent:type==='free'?100:Number($('opercent').value||0),default_support_amount:Number($('oamount').value||0),annual_session_limit:$('olimit').value?Number($('olimit').value):null,contract_start:$('ostart').value||null,contract_end:$('oend').value||null});alert(error?error.message:'سازمان ثبت شد');if(!error)loadOrgs()}
+$('saveBen').onclick=async()=>{const {error}=await supabase.from('support_beneficiaries').insert({organization_id:$('bOrg').value,full_name:$('bname').value.trim(),mobile:$('bmobile').value.trim()||null,national_id:$('bnid').value.trim()||null,organization_member_code:$('bcode').value.trim()||null,session_limit:$('blimit').value?Number($('blimit').value):null,valid_from:$('bfrom').value||undefined,valid_until:$('buntil').value||null});alert(error?error.message:'فرد ثبت شد');if(!error)loadBen()}
+$('saveRef').onclick=async()=>{const type=$('rtype').value;const code='REF-'+new Date().getFullYear()+'-'+crypto.randomUUID().replaceAll('-','').slice(0,10).toUpperCase();const {error}=await supabase.from('support_referrals').insert({organization_id:$('rOrg').value,beneficiary_id:$('rBen').value||null,referral_code:code,referred_full_name:$('rname').value.trim(),referred_mobile:$('rmobile').value.trim()||null,support_type:type,discount_percent:type==='free'?100:Number($('rpercent').value||0),support_amount:Number($('ramount').value||0),session_limit:$('rlimit').value?Number($('rlimit').value):null,valid_from:$('rfrom').value||undefined,valid_until:$('runtil').value||null,status:'approved'});alert(error?error.message:'معرفی‌نامه صادر شد:\n'+code);if(!error)loadRefs()}
+$('loadClaims').onclick=loadClaims;
+(async()=>{if(await guard()){tabs();await loadOrgs();await loadBen();await loadRefs();}})();
+</script></body></html>
