@@ -69,7 +69,13 @@ $('submit').onclick=async()=>{
       if(error)throw error;
     }
     const{data,error}=await sb.rpc('submit_card_payment_for_order',{p_order_id:order.id,p_tracking_code:tracking,p_payer_card_last4:last4||null,p_receipt_path:path});
-    if(error)throw error;
+    if(error){
+      // The database function can complete the insert even if the HTTP response is interrupted.
+      // Re-check the receipt before reporting a false failure to the customer.
+      const verify=await sb.from('payment_receipts').select('id,status,tracking_code,receipt_path').eq('booking_order_id',order.id).eq('user_id',user.id).eq('status','pending').order('submitted_at',{ascending:false}).limit(1).maybeSingle();
+      if(!verify.error&&verify.data){msg('رسید با موفقیت ثبت شد و برای بررسی مدیر مالی ارسال گردید. وضعیت نوبت پس از تأیید مالی به‌روزرسانی می‌شود.',true);b.textContent='رسید ثبت شد ✓';return;}
+      throw new Error(error.message||'ثبت رسید انجام نشد.');
+    }
     msg('رسید با موفقیت ثبت شد و برای بررسی مدیر مالی ارسال گردید. پس از تأیید، وضعیت نوبت و صورتحساب شما به‌صورت خودکار به‌روزرسانی می‌شود.',true);b.textContent='رسید ثبت شد ✓';
   }catch(e){msg(e?.message||'ثبت رسید انجام نشد.');b.disabled=false;b.textContent='ثبت رسید و ارسال برای بررسی مالی'}
 };
