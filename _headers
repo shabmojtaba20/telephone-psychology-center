@@ -7,6 +7,15 @@
 /admin-professional.html
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 
+/appointment-slots-v6.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/consultant-panel.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/consultant-panel-professional.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
 /role-access.js
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 
