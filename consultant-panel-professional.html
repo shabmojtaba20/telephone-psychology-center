@@ -27,6 +27,7 @@ async function start(){
     msg('اتصال پنل به حساب کامل نشد: '+(e?.message||e),true);
     return;
   }
+}
 
 // resilient global error display + delegated fallback for dynamic controls
 window.addEventListener('error',e=>{try{msg('خطای پنل: '+(e.message||'خطای ناشناخته'),true)}catch(_){}});
