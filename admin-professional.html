@@ -162,7 +162,7 @@ async function loadPaymentReceipts(){
    const appointment=x.scheduled_at?new Date(x.scheduled_at).toLocaleString('fa-IR'):(x.booking_order_id?'سفارش رزرو متصل':'بدون نوبت/سفارش');
    const linked=!!(x.appointment_id||x.booking_order_id);
    const actions=x.status==='pending'
-     ?(x.appointment_id?'<button class="btn green" data-receipt-approve="'+x.id+'">تأیید</button> ':'<button class="btn secondary" data-receipt-attach="'+x.id+'">🔗 اتصال به نوبت</button> ')+'<button class="btn red" data-receipt-reject="'+x.id+'">رد</button>''
+     ?(x.appointment_id?'<button class="btn green" data-receipt-approve="'+x.id+'">تأیید</button> ':'<button class="btn secondary" data-receipt-attach="'+x.id+'">🔗 اتصال به نوبت</button> ')+'<button class="btn red" data-receipt-reject="'+x.id+'">رد</button>'
      :'<span class="muted">'+esc(x.reviewed_at?receiptDate(x.reviewed_at):'-')+'</span>';
    const view=x.receipt_path
      ?'<button class="btn secondary" data-receipt-view="'+x.id+'">نمایش</button>'
@@ -204,7 +204,7 @@ async function loadReceiptCandidates(receiptId){
  if(select)select.onchange=()=>{
    const x=receiptCandidates.find(v=>v.appointment_id===select.value);
    if(!x){if(info)info.style.display='none';btn.disabled=true;return}
-   if(info){info.style.display='block';info.innerHTML='<b>مشاور:</b> '+esc(x.consultant_name||'-')+'<br><b>خدمت:</b> '+esc(x.service_name||'-')+'<br><b>زمان:</b> '+esc(x.scheduled_at?new Date(x.scheduled_at).toLocaleString('fa-IR'):'-')+'<br><b>وضعیت نوبت:</b> '+esc(x.appointment_status||'-')+' / '+esc(x.appointment_payment_status||'-')+'<br><b>سفارش:</b> '+esc(x.booking_order_id||'-')+' — '+esc(x.order_payment_status||'-')+'<br><b>صورتحساب:</b> '+esc(x.invoice_number||x.invoice_id||'-')+' — '+esc(x.invoice_status||'-')}</b>'}
+   if(info){info.style.display='block';info.innerHTML='<b>مشاور:</b> '+esc(x.consultant_name||'-')+'<br><b>خدمت:</b> '+esc(x.service_name||'-')+'<br><b>زمان:</b> '+esc(x.scheduled_at?new Date(x.scheduled_at).toLocaleString('fa-IR'):'-')+'<br><b>وضعیت نوبت:</b> '+esc(x.appointment_status||'-')+' / '+esc(x.appointment_payment_status||'-')+'<br><b>سفارش:</b> '+esc(x.booking_order_id||'-')+' — '+esc(x.order_payment_status||'-')+'<br><b>صورتحساب:</b> '+esc(x.invoice_number||x.invoice_id||'-')+' — '+esc(x.invoice_status||'-')}
    btn.disabled=false;
  };
 }
