@@ -142,9 +142,10 @@ async function loadPaymentReceipts(){
  const rows=receiptFilter==='all'?paymentReceiptsCache:paymentReceiptsCache.filter(x=>x.status===receiptFilter);
  const body=$('paymentReceiptsList');if(!body)return;
  body.innerHTML=rows.length?rows.map(x=>{
-   const appointment=x.scheduled_at?new Date(x.scheduled_at).toLocaleString('fa-IR'):'بدون نوبت';
+   const appointment=x.scheduled_at?new Date(x.scheduled_at).toLocaleString('fa-IR'):(x.booking_order_id?'سفارش رزرو متصل':'بدون نوبت/سفارش');
+   const linked=!!(x.appointment_id||x.booking_order_id);
    const actions=x.status==='pending'
-     ?'<button class="btn green" data-receipt-approve="'+x.id+'">تأیید</button> <button class="btn red" data-receipt-reject="'+x.id+'">رد</button>'
+     ?(linked?'<button class="btn green" data-receipt-approve="'+x.id+'">تأیید</button> ':'<span class="muted">نیازمند اتصال به نوبت/سفارش</span>')+'<button class="btn red" data-receipt-reject="'+x.id+'">رد</button>'
      :'<span class="muted">'+esc(x.reviewed_at?receiptDate(x.reviewed_at):'-')+'</span>';
    const view=x.receipt_path
      ?'<button class="btn secondary" data-receipt-view="'+x.id+'">نمایش</button>'
