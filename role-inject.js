@@ -33,6 +33,7 @@ const financeReportAccessFix='<script src="/finance-report-access-fix.js?v=1"></
 const financeReceiptIntegrity='<script src="/finance-receipt-integrity.js?v=1"></script>';
 const workshopAdminPlus='<script src="/workshop-admin-plus.js?v=1"></script>';
 const educationDashboardNav='<script src="/education-dashboard-nav.js?v=2"></script>';
+const adminNavFinal='<script src="/admin-nav-final.js?v=1"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
 const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
@@ -41,7 +42,7 @@ const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 function inject(html,scripts=[]){for(const s of scripts)if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);return html;}
 function injectHead(html,scripts=[]){for(const s of scripts)if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);return html;}
 const adminPath=path.join(root,'admin-professional.html');
-if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,adminNavFallback,financePanelBridge,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs,workshopAdminPlus,educationDashboardNav]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
+if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,adminNavFallback,financePanelBridge,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs,workshopAdminPlus,educationDashboardNav,adminNavFinal]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=injectHead(html,[panelAuth]);html=inject(html,[logoutFix,consultantAi,consultantReadonly,consultantPayment,consultantOps,consultantBootFix,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
 for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme,...(file==='admin-v5.html'?[financeBankFix,financeReceiptIntegrity]:[]),...(file==='finance-reports.html'?[financeReportAccessFix]:[])];html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
