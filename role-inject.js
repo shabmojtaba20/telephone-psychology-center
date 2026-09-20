@@ -7,7 +7,7 @@ const panelAuth='<script src="/panel-auth-guard.js"></script>';
 const panelIntegration='<script src="/admin-panel-integration.js"></script>';
 const logoutFix='<script src="/admin-logout-fix.js"></script>';
 const adminStability='<script src="/admin-professional-stability.js"></script>';
-const adminNavFallback='<script src="/admin-nav-fallback.js?v=2"></script>';
+const adminNavFallback='<script src="/admin-nav-fallback.js?v=3"></script>';
 const financePanelBridge='<script src="/finance-panel-bridge.js"></script>';
 const consultantManager='<script src="/stage10-consultant-management.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
