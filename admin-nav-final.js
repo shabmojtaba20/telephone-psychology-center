@@ -86,6 +86,29 @@ function replaceControl(old){
 function init(){
   ensureStyle();
 
+  // Final delegated handler: survives other scripts that replace menu buttons.
+  if(!window.__adminNavDelegated){
+    window.__adminNavDelegated=true;
+    document.addEventListener('click',e=>{
+      const title=e.target.closest?.('.nav .group>.group-title');
+      if(title){
+        const group=title.parentElement;
+        if(group?.classList.contains('group')){
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(group,!group.classList.contains('is-open'));
+          return;
+        }
+      }
+      const pageBtn=e.target.closest?.('.nav [data-page]');
+      if(pageBtn){
+        e.preventDefault();
+        e.stopPropagation();
+        switchPage(pageBtn);
+      }
+    },true);
+  }
+
   document.querySelectorAll('.nav .group').forEach(group=>{
     const oldTitle=group.querySelector(':scope>.group-title');
     if(!oldTitle)return;
