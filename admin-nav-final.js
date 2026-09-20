@@ -15,6 +15,7 @@ function ensureStyle(){
     .nav .group{position:relative}
     .nav .group>.sub{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;overflow:hidden!important}
     .nav .group.is-open>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
+    .nav .group:focus-within>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}
     .nav .group>.group-title{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .nav .sub button[data-page]{pointer-events:auto!important;touch-action:manipulation}
   `;
