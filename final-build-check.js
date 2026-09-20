@@ -32,6 +32,7 @@ if (!/<html[\s>]/i.test(indexHtml) || !/<body[\s>]/i.test(indexHtml)) {
 const financeReports = fs.readFileSync(path.join(root, 'finance-reports.html'), 'utf8');
 const financeAudit = fs.readFileSync(path.join(root, 'finance-audit.html'), 'utf8');
 const admin = fs.readFileSync(path.join(root, 'admin-v5.html'), 'utf8');
+const adminProfessional = fs.readFileSync(path.join(root, 'admin-professional.html'), 'utf8');
 const advancedReport = fs.readFileSync(path.join(root, 'advanced-finance-report.js'), 'utf8');
 const reconciliation = fs.readFileSync(path.join(root, 'finance-report-reconciliation.js'), 'utf8');
 
@@ -57,10 +58,10 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
   throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
-if (!admin.includes('/admin-nav-final.js?v=1')) {
+if (!adminProfessional.includes('/admin-nav-final.js?v=1')) {
   throw new Error('FINAL BUILD CHECK FAILED: final admin navigation script is missing');
 }
-if (admin.includes('/admin-nav-fallback.js')) {
+if (adminProfessional.includes('/admin-nav-fallback.js')) {
   throw new Error('FINAL BUILD CHECK FAILED: stale admin navigation fallback is still injected');
 }
 
