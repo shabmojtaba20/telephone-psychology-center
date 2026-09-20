@@ -24,7 +24,7 @@ function moveServices(step){const visible=window.innerWidth>=1000?3:(window.inne
 function restartServiceAutoplay(){clearInterval(serviceTimer);if(serviceSlides.length<=1)return;serviceTimer=setInterval(()=>{const visible=window.innerWidth>=1000?3:(window.innerWidth>=700?2:1),max=Math.max(0,serviceSlides.length-visible);serviceSlideIndex=serviceSlideIndex>=max?0:serviceSlideIndex+1;updateServiceSlider()},5000)}
 function selectService(id){selected=serviceSlides.find(x=>x.id===id)||null;if(!selected)return;document.querySelectorAll('#servicesList .service-card').forEach(x=>x.classList.remove('selected'));document.querySelectorAll('#servicesList .service-slide').forEach(x=>{if(x.querySelector('[data-service-id="'+id+'"]'))x.querySelector('.service-card')?.classList.add('selected')});$('chosen').textContent='خدمت انتخاب‌شده: '+selected.name;$('booking').classList.remove('hidden');$('booking').scrollIntoView({behavior:'smooth'});updateBookingAuth()}
 async function loadServices(){const{data,error}=await s.from('services').select('*').eq('is_active',true).order('sort_order');if(error)return $('servicesList').innerHTML='<div class="service-slide"><article class="card service-card"><p class="muted">خطا در دریافت خدمات</p></article></div>';serviceSlides=data||[];renderServiceSlider();restartServiceAutoplay()}
-=[],consultantSlideIndex=0,consultantTimer=null;
+let consultantSlides=[],consultantSlideIndex=0,consultantTimer=null;
 function renderConsultantSlider(){
   const track=$('consultantsList'),dots=$('consultantsDots'),count=$('consultantsCount');
   if(!track)return;
