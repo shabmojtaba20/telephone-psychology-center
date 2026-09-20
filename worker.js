@@ -3,6 +3,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
+    // Always serve the professional admin shell without browser/edge caching.
+    // This prevents an older HTML shell from hiding newly injected navigation fixes.
+    if (path === "/admin-professional.html") {
+      const response = await env.ASSETS.fetch(new Request(new URL("/admin-professional.html", url), request));
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      headers.set("Pragma", "no-cache");
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }
+
     // Canonical education dashboard aliases.
     // All public forms resolve to the same real HTML asset.
     if (
