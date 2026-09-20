@@ -57,6 +57,13 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
   throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
+if (!admin.includes('/admin-nav-final.js?v=1')) {
+  throw new Error('FINAL BUILD CHECK FAILED: final admin navigation script is missing');
+}
+if (admin.includes('/admin-nav-fallback.js')) {
+  throw new Error('FINAL BUILD CHECK FAILED: stale admin navigation fallback is still injected');
+}
+
 const allHtml = [indexHtml, financeReports, financeAudit, admin];
 const markerCount = allHtml.reduce((sum, html) => sum + (html.match(/finance-build-injection-v\d+/g) || []).length, 0);
 if (markerCount !== 1) {
