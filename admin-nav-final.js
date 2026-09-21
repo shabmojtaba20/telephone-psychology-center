@@ -24,9 +24,18 @@ function toggleGroup(group){
   document.querySelectorAll('.nav .group').forEach(g=>setOpen(g,g===group&&next));
   return false;
 }
-function navigate(page,button){
+async function navigate(page,button){
   if(!page)return false;
-  const allowed=window.__adminAllowedPages;
+  // role-access.js loads permissions asynchronously; wait briefly so a valid
+  // permission is not mistaken for an unavailable page on the first click.
+  let allowed=window.__adminAllowedPages;
+  if(!(allowed instanceof Set)){
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,100));
+      allowed=window.__adminAllowedPages;
+      if(allowed instanceof Set)break;
+    }
+  }
   if(allowed instanceof Set&&!allowed.has('*')&&!allowed.has(page)){
     const n=$('notice');
     if(n){n.textContent='این بخش برای نقش فعلی شما مجاز نیست.';n.className='notice err';n.style.display='block';}
@@ -70,7 +79,7 @@ function init(){
   nav.querySelectorAll('.sub button[data-page]').forEach(button=>{
     if(button.dataset.adminNavV7Bound==='1')return;
     button.dataset.adminNavV7Bound='1';button.type='button';
-    button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();navigate(button.dataset.page,button);},false);
+    button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();Promise.resolve(navigate(button.dataset.page,button)).catch(err=>console.error('admin navigation failed',err));},false);
   });
   const menu=$('menuBtn');
   if(menu&&!menu.dataset.adminNavV7Bound){
