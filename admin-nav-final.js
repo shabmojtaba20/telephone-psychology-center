@@ -43,12 +43,10 @@ function navigate(page,button){
   try{history.replaceState(null,'','#'+encodeURIComponent(page))}catch(_){}
   if(page==='consultants'){
     $('consultants')?.scrollIntoView({block:'start'});
-    if(typeof window.load==='function'){
-      Promise.resolve(window.load()).then(()=>{
-        if(typeof window.loadConsultants==='function')return window.loadConsultants();
-      }).catch(e=>console.error('consultants navigation load failed',e));
-    }else if(typeof window.loadConsultants==='function'){
+    if(typeof window.loadConsultants==='function'){
       window.loadConsultants();
+    }else if(typeof window.load==='function'){
+      Promise.resolve(window.load()).catch(e=>console.error('consultants navigation load failed',e));
     }
   }
   if(window.matchMedia?.('(max-width:700px)').matches)$('side')?.classList.remove('open');
