@@ -46,6 +46,6 @@ export default {
       });
     }
 
-    return env.ASSETS.fetch(request);
+    // Explicitly map the site root to the real homepage asset.\n    // This avoids relying on implicit index.html resolution at the Worker layer.\n    if (path === "/") {\n      const target = new URL("/index.html", url);\n      const response = await env.ASSETS.fetch(new Request(target, request));\n      const headers = new Headers(response.headers);\n      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");\n      headers.set("Pragma", "no-cache");\n      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });\n    }\n\n    return env.ASSETS.fetch(request);
   }
 };
