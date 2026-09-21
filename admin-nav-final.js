@@ -84,11 +84,6 @@ function init(){
       e.stopPropagation();
       toggleGroup(title.closest('.group'));
     },false);
-    title.addEventListener('touchend',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      toggleGroup(title.closest('.group'));
-    },{passive:false});
   });
 
   nav.querySelectorAll('[data-page]').forEach(button=>{
