@@ -58,8 +58,9 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
   throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
-if (!adminProfessional.includes('/admin-nav-final.js?v=3')) {
-  throw new Error('FINAL BUILD CHECK FAILED: final admin navigation script is missing');
+const adminNavMatches=adminProfessional.match(/<script[^>]+src=[\"']\/admin-nav-final\.js\?v=[^\"']+[\"'][^>]*><\\/script>/gi)||[];
+if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=3')) {
+  throw new Error('FINAL BUILD CHECK FAILED: admin navigation must contain exactly one v3 script');
 }
 if (adminProfessional.includes('/admin-nav-fallback.js')) {
   throw new Error('FINAL BUILD CHECK FAILED: stale admin navigation fallback is still injected');
