@@ -19,6 +19,9 @@
 /role-access.js
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 
+/admin-nav-final.js
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
 /admin-professional-modern.css
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 
