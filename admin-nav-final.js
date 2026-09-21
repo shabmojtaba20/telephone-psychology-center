@@ -54,7 +54,7 @@ window.adminNavTo=navigate;
 
 function init(){
   const nav=document.querySelector('.nav');if(!nav)return;
-  if(!document.getElementById('admin-nav-v7-style')){
+  if(!document.getElementById('admin-nav-v8-style')){
     const s=document.createElement('style');s.id='admin-nav-v7-style';
     s.textContent='.nav .group>.sub{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;max-height:0!important;overflow:hidden!important}.nav .group.open>.sub,.nav .group.is-open>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}.nav .group>.group-title{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer}.nav .sub button[data-page]{pointer-events:auto!important;touch-action:manipulation;position:relative;z-index:2}';
     document.head.appendChild(s);
