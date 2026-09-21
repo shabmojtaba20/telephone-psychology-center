@@ -63,9 +63,9 @@ function init(){
   const nav=document.querySelector('.nav');
   if(!nav)return;
 
-  if(!document.getElementById('admin-nav-v3-style')){
+  if(!document.getElementById('admin-nav-v4-style')){
     const s=document.createElement('style');
-    s.id='admin-nav-v3-style';
+    s.id='admin-nav-v4-style';
     s.textContent=[
       '.nav .group>.sub{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;max-height:0!important;overflow:hidden!important}',
       '.nav .group.open>.sub,.nav .group.is-open>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}',
@@ -77,7 +77,7 @@ function init(){
 
   // Capture at the NAV level so no old inline handler or nested listener
   // can override the final behavior.
-  if(nav.dataset.adminNavV3Bound!=='1'){
+  if(nav.dataset.adminNavV4Bound!=='1'){
     nav.dataset.adminNavV3Bound='1';
     nav.addEventListener('click',event=>{
       const title=event.target.closest?.('.group-title');
