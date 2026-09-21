@@ -25,12 +25,9 @@ jobs:
 
           changed = False
 
-          # Restore visible profile label in the header.
-          old = '<button id="accountBtn">ورود / ثبت‌نام</button>'
-          new = '<button id="accountBtn">پروفایل</button>'
-          if old in s:
-              s = s.replace(old, new, 1)
-              changed = True
+          # Keep the account button session-aware; do not hard-code its label.
+          if '<button id="accountBtn">' not in s:
+              raise SystemExit('Account button marker not found')
 
           # Ensure role-panel links exist in the header.
           admin = '<a class="btn" href="/admin.html">پنل مدیریت</a>'
@@ -45,9 +42,9 @@ jobs:
               s = s.replace(consultant, consultant + finance, 1)
               changed = True
 
-          # Restore panel/profile links in the footer.
+          # Restore panel links in the footer (without a profile button).
           footer_marker = '<footer class="footer"><div class="c"><h3>مرکز مشاوره تلفنی روان</h3><p>رزرو نوبت و پرداخت آنلاین خدمات مشاوره.</p>'
-          footer_nav = '<nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a><a href="#top" id="footerProfileLink">پروفایل</a></nav>'
+          footer_nav = '<nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>'
           if 'class="footer-panel-links"' not in s:
               if footer_marker not in s:
                   raise SystemExit('Footer marker not found')
@@ -74,5 +71,5 @@ jobs:
             echo "No homepage change needed"
             exit 0
           fi
-          git commit -m "fix: restore profile and footer panel navigation"
+          git commit -m "fix: restore panel navigation without overriding account UI"
           git push
