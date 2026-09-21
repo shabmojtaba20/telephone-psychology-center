@@ -58,7 +58,7 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
   throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
-const adminNavMatches=adminProfessional.match(/<script[^>]+src=[\"']\/admin-nav-final\.js\?v=[^\"']+[\"'][^>]*><\\/script>/gi)||[];
+const adminNavMatches=(adminProfessional.match(/<script[^>]+src=[\"']\/admin-nav-final\.js\?v=[^\"']+[\"'][^>]*><\/script>/gi)||[]);
 if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=3')) {
   throw new Error('FINAL BUILD CHECK FAILED: admin navigation must contain exactly one v3 script');
 }
