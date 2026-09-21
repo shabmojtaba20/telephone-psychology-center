@@ -31,9 +31,11 @@ export default {
       }
       let html = await response.text();
       const navigationFix = `<style>
-        header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap}
-        header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{font-size:13px;padding:7px 10px;border-radius:9px}
-        @media(max-width:700px){header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:none!important}header .links #accountBtn{display:inline-flex!important}}
+        header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:13px;padding:7px 10px;border-radius:9px}
+        header .links{flex-wrap:wrap}
+        .footer-panel-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+        .footer-panel-links a{display:inline-flex;align-items:center;background:#30364b;color:#fff;text-decoration:none;border-radius:10px;padding:9px 13px;font-size:14px}
+        @media(max-width:700px){header .nav{align-items:flex-start;flex-direction:column;padding:10px 0}header .links{width:100%;justify-content:flex-start;gap:8px}header .links a{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:12px;padding:6px 9px}header .links #accountBtn{display:inline-flex!important;font-size:12px;padding:6px 9px}}
       </style><script>
       (()=>{
         const run=()=>{
@@ -47,11 +49,17 @@ export default {
             ['/consultant-panel.html','پنل مشاور']
           ];
           for(const [href,label] of targets){
-            let link=[...document.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});
-            if(!link){link=document.createElement('a');link.href=href;}
+            let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});
+            if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}
             link.textContent=label;
             link.classList.add('btn','role-panel-link');
-            if(link.parentElement!==nav)nav.appendChild(link);
+          }
+          const footer=document.querySelector('footer .c');
+          if(footer&&!footer.querySelector('.footer-panel-links')){
+            const group=document.createElement('nav');group.className='footer-panel-links';group.setAttribute('aria-label','دسترسی به پنل‌ها');
+            for(const [href,label] of targets){const a=document.createElement('a');a.href=href;a.textContent=label;group.appendChild(a);}
+            const profile=document.createElement('a');profile.href='#';profile.textContent='پروفایل';profile.addEventListener('click',e=>{e.preventDefault();account?.click();});group.appendChild(profile);
+            footer.appendChild(group);
           }
         };
         if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
