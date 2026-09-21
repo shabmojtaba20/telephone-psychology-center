@@ -59,8 +59,8 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
 }
 
 const adminNavMatches=(adminProfessional.match(/<script[^>]+src=[\"']\/admin-nav-final\.js\?v=[^\"']+[\"'][^>]*><\/script>/gi)||[]);
-if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=4')) {
-  throw new Error('FINAL BUILD CHECK FAILED: admin navigation must contain exactly one v4 script');
+if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=5')) {
+  throw new Error('FINAL BUILD CHECK FAILED: admin navigation must contain exactly one v5 script');
 }
 if (adminProfessional.includes('/admin-nav-fallback.js')) {
   throw new Error('FINAL BUILD CHECK FAILED: stale admin navigation fallback is still injected');
