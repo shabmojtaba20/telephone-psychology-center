@@ -71,6 +71,36 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function note(t,bad=false){const e=$('notice');e.textContent=t;e.className='notice'+(bad?' err':'');e.style.display='block';setTimeout(()=>e.style.display='none',3500)}
 async function guard(){const {data:{session}}=await db.auth.getSession();if(!session){location.replace('/admin.html');return false}const r=await db.rpc('is_admin');if(r.error||r.data!==true){note('این حساب دسترسی مدیر ندارد.',true);await db.auth.signOut();return false}return true}
 function activate(page,button){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(page)?.classList.add('active');document.querySelectorAll('[data-page]').forEach(x=>x.classList.remove('active'));button?.classList.add('active');const text=button?.textContent?.trim()||page;$('title').textContent=text;load();$('side').classList.remove('open')}
+async function loadConsultants(){
+  const list=$('consultantsList');
+  if(!list)return;
+  list.innerHTML='<div class="item">در حال دریافت فهرست مشاوران...</div>';
+  try{
+    const r=await db.from('consultants').select('id,name,specialty,bio,is_active,sort_order,education,photo_url,intro_video_url').order('sort_order',{ascending:true});
+    if(r.error)throw r.error;
+    const rows=r.data||[];
+    if(!rows.length){list.innerHTML='<div class="empty">هنوز مشاوری ثبت نشده است.</div>';return;}
+    list.innerHTML=rows.map(x=>'<div class="item consultant-row" style="margin-top:12px"><div class="top"><div><h3 style="margin:0">'+esc(x.name||'بدون نام')+'</h3><div class="muted">'+esc(x.specialty||'تخصص ثبت نشده')+(x.education?' · '+esc(x.education):'')+'</div></div><div class="actions"><button class="btn secondary" type="button" data-edit-consultant="'+esc(x.id)+'">ویرایش</button><button class="btn red" type="button" data-delete-consultant="'+esc(x.id)+'">حذف</button></div></div><p style="margin-bottom:0">'+esc(x.bio||'رزومه‌ای ثبت نشده است.')+'</p><div class="muted" style="margin-top:7px">وضعیت: '+(x.is_active?'فعال':'غیرفعال')+'</div></div>').join('');
+  }catch(e){
+    console.error('loadConsultants',e);
+    list.innerHTML='<div class="dangerbox">دریافت فهرست مشاوران ناموفق بود: '+esc(e?.message||'خطای نامشخص')+'</div>';
+  }
+}
+$('consultantsList')?.addEventListener('click',async e=>{
+  const edit=e.target.closest('[data-edit-consultant]')?.dataset.editConsultant;
+  const del=e.target.closest('[data-delete-consultant]')?.dataset.deleteConsultant;
+  if(edit){
+    const r=await db.from('consultants').select('*').eq('id',edit).single();
+    if(r.error)note(r.error.message,true); else if(typeof consultantForm==='function')consultantForm(r.data);
+    return;
+  }
+  if(del){
+    if(!confirm('این مشاور حذف شود؟'))return;
+    const r=await db.from('consultants').delete().eq('id',del);
+    if(r.error)note(r.error.message,true); else {note('مشاور حذف شد');await loadConsultants();}
+  }
+});
+
 // Navigation is owned by /admin-nav-final.js to avoid competing event handlers.
 $('logoutBtn').onclick=async()=>{await db.auth.signOut();location.replace('/admin.html')};
 function isoDateLocal(v){const d=new Date(v);const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),m=Object.fromEntries(p.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return m.year+'-'+m.month+'-'+m.day}function addDaysISO(iso,n){const a=iso.split('-').map(Number),d=new Date(Date.UTC(a[0],a[1]-1,a[2]+n,12));return d.toISOString().slice(0,10)}function perfDates(kind){const today=isoDateLocal(new Date());if(kind==='today')return[today,today];if(kind==='month'){const a=today.split('-');return[a[0]+'-'+a[1]+'-01',today]}const d=new Date(today+'T12:00:00Z'),start=(d.getUTCDay()+1)%7;return[addDaysISO(today,-start),today]}function finRange(kind){return perfDates(kind)}async function loadAdvancedFinance(from,to){
@@ -292,4 +322,4 @@ function serviceForm(x={}){$('serviceForm').innerHTML=`<div class="item"><input 
 $('addService').onclick=()=>serviceForm();$('servicesList').addEventListener('click',async e=>{const edit=e.target.dataset.editS,del=e.target.dataset.delS;if(edit){const r=await db.from('services').select('*').eq('id',edit).single();if(!r.error)serviceForm(r.data)}if(del){if(!confirm('خدمت حذف شود؟'))return;const r=await db.from('services').delete().eq('id',del);if(r.error)note(r.error.message,true);else{note('خدمت حذف شد');load()}}});
 document.querySelectorAll('[data-pr]').forEach(b=>b.onclick=()=>{const d=perfDates(b.dataset.pr);$('perfFrom').value=d[0];$('perfTo').value=d[1];loadConsultantPerformance()});$('perfApply').onclick=loadConsultantPerformance;document.querySelectorAll('[data-fin-period]').forEach(b=>b.onclick=()=>{const d=finRange(b.dataset.finPeriod);$('finFrom').value=d[0];$('finTo').value=d[1];loadAdvancedFinance(d[0],d[1])});$('applyFinanceRange').onclick=()=>loadAdvancedFinance($('finFrom').value,$('finTo').value);load();const fd=finRange('month');$('finFrom').value=fd[0];$('finTo').value=fd[1];loadAdvancedFinance(fd[0],fd[1]);
 $('refreshSettlements').onclick=loadSettlements;$('previewSettlement').onclick=previewSettlement;$('createSettlement').onclick=createSettlement;document.querySelectorAll('[data-settle-period]').forEach(b=>b.onclick=()=>{const d=settlementPeriod(b.dataset.settlePeriod);$('settlementFrom').value=d[0];$('settlementTo').value=d[1];previewSettlement()});$('settlementsList').addEventListener('click',async e=>{const a=e.target.dataset.settleApprove,p=e.target.dataset.settlePay;if(a)await approveSettlement(a);if(p)await paySettlement(p)});const sd=settlementPeriod('month');$('settlementFrom').value=sd[0];$('settlementTo').value=sd[1];loadSettlementConsultants();loadSettlements();$('refreshPaymentReceipts').onclick=loadPaymentReceipts;$('closeReceiptLinkModal').onclick=closeReceiptLinkModal;$('cancelReceiptLinkBtn').onclick=closeReceiptLinkModal;$('attachReceiptBtn').onclick=attachSelectedReceipt;$('receiptLinkModal').addEventListener('click',e=>{if(e.target.id==='receiptLinkModal')closeReceiptLinkModal()});document.querySelectorAll('[data-receipt-filter]').forEach(b=>b.onclick=()=>{receiptFilter=b.dataset.receiptFilter;loadPaymentReceipts()});$('paymentReceiptsList').addEventListener('click',async e=>{const approve=e.target.dataset.receiptApprove,reject=e.target.dataset.receiptReject,attach=e.target.dataset.receiptAttach,view=e.target.dataset.receiptView;if(approve)await reviewPaymentReceipt(approve,'approved');else if(reject)await reviewPaymentReceipt(reject,'rejected');else if(attach)await openReceiptLinkModal(attach);else if(view)await openPaymentReceipt(view)});$('addExpenseCategory').onclick=expenseCategoryForm;$('saveExpense').onclick=saveExpense;$('expensesList').addEventListener('click',async e=>{const id=e.target.dataset.expDel;if(!id)return;if(!confirm('این هزینه حذف شود؟'))return;const r=await db.from('expenses').delete().eq('id',id);if(r.error)note(r.error.message,true);else{note('هزینه حذف شد');const d=finRange('month');await loadExpenses();await loadAdvancedFinance(d[0],d[1])}});$('expenseDate').value=new Date().toISOString().slice(0,10);loadExpenseCategories();loadExpenses();load();</script>
-<script src="/admin-nav-final.js?v=6"></script>\n</body></html>
+<script src="/admin-nav-final.js?v=8"></script>\n</body></html>
