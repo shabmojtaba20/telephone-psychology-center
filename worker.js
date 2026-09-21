@@ -33,16 +33,14 @@ export default {
       const navigationFix = `<style>
         header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:13px;padding:7px 10px;border-radius:9px}
         header .links{flex-wrap:wrap}
-        .footer-panel-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-        .footer-panel-links a{display:inline-flex;align-items:center;background:#30364b;color:#fff;text-decoration:none;border-radius:10px;padding:9px 13px;font-size:14px}
+        .footer-panel-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px}
+        .footer-panel-links a{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#344054!important;text-decoration:none;border:1px solid #d0d5dd;border-radius:8px;padding:6px 11px;font-size:12px;min-width:92px}.footer-panel-links a[href="/admin.html"]{background:#2563eb;color:#fff!important;border-color:#2563eb}
         @media(max-width:700px){header .nav{align-items:flex-start;flex-direction:column;padding:10px 0}header .links{width:100%;justify-content:flex-start;gap:8px}header .links a{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:12px;padding:6px 9px}header .links #accountBtn{display:inline-flex!important;font-size:12px;padding:6px 9px}}
       </style><script>
       (()=>{
         const run=()=>{
           const nav=document.querySelector('header nav.links');
           if(!nav)return;
-          const account=document.getElementById('accountBtn');
-          if(account){account.textContent='پروفایل';account.setAttribute('aria-label','ورود و مشاهده پروفایل');}
           const targets=[
             ['/admin.html','پنل مدیریت'],
             ['/admin-v5.html','پنل مالی'],
@@ -58,7 +56,6 @@ export default {
           if(footer&&!footer.querySelector('.footer-panel-links')){
             const group=document.createElement('nav');group.className='footer-panel-links';group.setAttribute('aria-label','دسترسی به پنل‌ها');
             for(const [href,label] of targets){const a=document.createElement('a');a.href=href;a.textContent=label;group.appendChild(a);}
-            const profile=document.createElement('a');profile.href='#';profile.textContent='پروفایل';profile.addEventListener('click',e=>{e.preventDefault();account?.click();});group.appendChild(profile);
             footer.appendChild(group);
           }
         };
