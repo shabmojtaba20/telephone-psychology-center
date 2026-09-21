@@ -17,7 +17,7 @@
 <nav class="nav">
 <button class="active" data-page="dashboard">🏠 داشبورد</button>
 <div class="group"><button class="group-title">⚙️ اطلاعات عمومی <span>⌄</span></button><div class="sub"><button data-page="general">مشخصات مرکز</button><button data-page="appearance">ظاهر و برند</button><button data-page="media">تصاویر صفحه اول</button><button data-page="contact">راه‌های ارتباطی</button></div></div>
-<div class="group"><button class="group-title">👨‍⚕️ مشاوران <span>⌄</span></button><div class="sub"><button data-page="consultants">فهرست مشاوران</button><button data-page="consultantPerformance">📈 گزارش عملکرد مشاوران</button><button data-page="availability">برنامه کاری</button></div></div>
+<div class="group"><button class="group-title">👨‍⚕️ مشاوران <span>⌄</span></button><div class="sub"><button type="button" data-page="consultants" onclick="return window.__openConsultantsDirect ? window.__openConsultantsDirect(this) : false;">فهرست مشاوران</button><button data-page="consultantPerformance">📈 گزارش عملکرد مشاوران</button><button data-page="availability">برنامه کاری</button></div></div>
 <div class="group"><button class="group-title">📅 نوبت‌ها <span>⌄</span></button><div class="sub"><button data-page="appointments">مدیریت نوبت‌ها</button><button type="button" onclick="location.href='appointment-slots-v6.html'">🗓️ تعیین تاریخ و ساعت نوبت</button></div></div>
 <div class="group"><button class="group-title">🛎️ خدمات مرکز <span>⌄</span></button><div class="sub"><button data-page="services">خدمات و قیمت‌ها</button></div></div>
 <div class="group"><button class="group-title">💰 مالی <span>⌄</span></button><div class="sub"><button data-page="finance">داشبورد مالی</button><button data-page="bank">حساب‌های بانکی</button><button data-page="gateways">درگاه‌های پرداخت</button></div></div><div class="group"><button class="group-title">🤝 حمایت‌های سازمانی <span>⌄</span></button><div class="sub"><button type="button" onclick="location.href='support-management.html'">🏢 مدیریت حمایت‌های سازمانی</button></div></div>
@@ -71,6 +71,34 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function note(t,bad=false){const e=$('notice');e.textContent=t;e.className='notice'+(bad?' err':'');e.style.display='block';setTimeout(()=>e.style.display='none',3500)}
 async function guard(){const {data:{session}}=await db.auth.getSession();if(!session){location.replace('/admin.html');return false}const r=await db.rpc('is_admin');if(r.error||r.data!==true){note('این حساب دسترسی مدیر ندارد.',true);await db.auth.signOut();return false}return true}
 function activate(page,button){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));$(page)?.classList.add('active');document.querySelectorAll('[data-page]').forEach(x=>x.classList.remove('active'));button?.classList.add('active');const text=button?.textContent?.trim()||page;$('title').textContent=text;load();$('side').classList.remove('open')}
+window.__openConsultantsDirect=function(button){
+  try{
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    const section=document.getElementById('consultants');
+    if(section)section.classList.add('active');
+    document.querySelectorAll('.nav [data-page]').forEach(x=>x.classList.toggle('active',x===button));
+    const group=button&&button.closest('.group');
+    document.querySelectorAll('.nav .group').forEach(g=>g.classList.toggle('open',g===group));
+    document.querySelectorAll('.nav .group').forEach(g=>g.classList.toggle('is-open',g===group));
+    if(group){
+      const sub=group.querySelector('.sub');
+      if(sub){sub.style.setProperty('display','block','important');sub.style.setProperty('visibility','visible','important');sub.style.setProperty('opacity','1','important');sub.style.setProperty('height','auto','important');sub.style.setProperty('max-height','none','important');}
+    }
+    const title=document.getElementById('title');if(title)title.textContent='فهرست مشاوران';
+    try{history.replaceState(null,'','#consultants')}catch(_){}
+    if(typeof window.loadConsultants==='function'){
+      window.loadConsultants();
+    }else{
+      const list=document.getElementById('consultantsList');
+      if(list)list.innerHTML='<div class="dangerbox">ماژول فهرست مشاوران بارگذاری نشده است.</div>';
+    }
+  }catch(e){
+    console.error('openConsultantsDirect',e);
+    const list=document.getElementById('consultantsList');
+    if(list)list.innerHTML='<div class="dangerbox">خطا در باز کردن فهرست مشاوران: '+esc(e?.message||'خطای نامشخص')+'</div>';
+  }
+  return false;
+};
 async function loadConsultants(){
   const list=$('consultantsList');
   if(!list)return;
