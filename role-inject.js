@@ -32,88 +32,7 @@ const financeReportAccessFix='<script src="/finance-report-access-fix.js?v=1"></
 const financeReceiptIntegrity='<script src="/finance-receipt-integrity.js?v=1"></script>';
 const workshopAdminPlus='<script src="/workshop-admin-plus.js?v=1"></script>';
 const educationDashboardNav='<script src="/education-dashboard-nav.js?v=2"></script>';
-const adminNavFinal='<script src="/admin-nav-final.js?v=1"></script>';
-const adminNavInline=`<script>
-(()=> {
-'use strict';
-if(window.__adminNavInlineBoot)return;
-window.__adminNavInlineBoot=true;
-function openGroup(group,open){
-  if(!group)return;
-  group.classList.toggle('open',open);
-  group.classList.toggle('is-open',open);
-  const sub=group.querySelector(':scope>.sub');
-  const title=group.querySelector(':scope>.group-title');
-  if(title)title.setAttribute('aria-expanded',open?'true':'false');
-  if(sub){
-    sub.style.setProperty('display',open?'block':'none','important');
-    sub.style.setProperty('visibility',open?'visible':'hidden','important');
-    sub.style.setProperty('opacity',open?'1':'0','important');
-    sub.style.setProperty('height',open?'auto':'0','important');
-    sub.style.setProperty('overflow','visible','important');
-  }
-}
-function init(){
-  const nav=document.querySelector('.nav');
-  if(!nav)return;
-  let style=document.getElementById('admin-nav-inline-style');
-  if(!style){
-    style=document.createElement('style');
-    style.id='admin-nav-inline-style';
-    style.textContent='.nav .group>.sub{display:none!important}.nav .group.is-open>.sub,.nav .group.open>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;overflow:visible!important}.nav .group>.group-title{touch-action:manipulation}';
-    document.head.appendChild(style);
-  }
-  nav.querySelectorAll('.group').forEach(group=>{
-    const title=group.querySelector(':scope>.group-title');
-    if(!title||title.dataset.inlineNavBound==='1')return;
-    title.dataset.inlineNavBound='1';
-    title.type='button';
-    title.setAttribute('aria-haspopup','true');
-    title.setAttribute('aria-expanded','false');
-    title.addEventListener('click',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      openGroup(group,!group.classList.contains('is-open'));
-    },true);
-    openGroup(group,false);
-  });
-  nav.addEventListener('click',e=>{
-    const title=e.target.closest?.('.group>.group-title');
-    if(title){
-      e.preventDefault();
-      e.stopPropagation();
-      const group=title.parentElement;
-      openGroup(group,!group.classList.contains('is-open'));
-      return;
-    }
-    const page=e.target.closest?.('[data-page]');
-    if(page){
-      e.preventDefault();
-      e.stopPropagation();
-      const id=page.dataset.page, section=document.getElementById(id);
-      if(!section)return;
-      document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
-      section.classList.add('active');
-      document.querySelectorAll('.nav [data-page]').forEach(x=>x.classList.toggle('active',x===page));
-      const heading=document.getElementById('title');
-      if(heading)heading.textContent=page.textContent.trim()||'پنل مدیریت';
-      nav.querySelectorAll('.group').forEach(g=>openGroup(g,g===page.closest('.group')));
-      if(window.matchMedia?.('(max-width:700px)').matches)document.getElementById('side')?.classList.remove('open');
-    }
-  },true);
-  const menu=document.getElementById('menuBtn');
-  if(menu&&!menu.dataset.inlineNavBound){
-    menu.dataset.inlineNavBound='1';
-    menu.type='button';
-    menu.addEventListener('click',e=>{
-      e.preventDefault();e.stopPropagation();
-      document.getElementById('side')?.classList.toggle('open');
-    },true);
-  }
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-})();
-</script>`;
+const adminNavFinal='<script src="/admin-nav-final.js?v=2"></script>';
 const mediaCss='<link rel="stylesheet" href="/stage5-media.css?v=1">';
 const homepageCss='<link rel="stylesheet" href="/stage7-homepage.css?v=3">';
 const homepageProCss='<link rel="stylesheet" href="/stage7-homepage-pro.css?v=1">';
@@ -122,22 +41,12 @@ const homepageRoleLogin='<script src="/homepage-role-login.js"></script>';
 function inject(html,scripts=[]){for(const s of scripts)if(!html.includes(s))html=html.replace('</body>',`\n${s}\n</body>`);return html;}
 function injectHead(html,scripts=[]){for(const s of scripts)if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);return html;}
 const adminPath=path.join(root,'admin-professional.html');
-if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');
-html=html.replace(/\s*<script[^>]+src=["']\/admin-nav-fallback\.js(?:\?v=[^"']*)?["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,financePanelBridge,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs,workshopAdminPlus,educationDashboardNav,adminNavFinal,adminNavInline]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
+if(fs.existsSync(adminPath)){let html=fs.readFileSync(adminPath,'utf8');html=html.replace(/\s*<script[^>]+src=["']\/admin-route-guard\.js["'][^>]*><\/script>/gi,'');html=html.replace(/\s*<script[^>]+src=["']\/admin-nav-fallback\.js(?:\?v=[^"']*)?["'][^>]*><\/script>/gi,'');html=injectHead(html,[panelAuth]);html=inject(html,[roleScript,roleSwitcher,panelIntegration,logoutFix,adminStability,financePanelBridge,consultantManager,mediaUi,branding,theme,homepageManager,homepagePro,homepageAdmin,notifications,faqs,workshopAdminPlus,educationDashboardNav,adminNavFinal]);for(const s of [modernCss,homepageCss,homepageProCss])if(!html.includes(s))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(adminPath,html,'utf8');}
 const consultantPath=path.join(root,'consultant-panel-professional.html');
 if(fs.existsSync(consultantPath)){let html=fs.readFileSync(consultantPath,'utf8');html=injectHead(html,[panelAuth]);html=inject(html,[logoutFix,consultantAi,consultantReadonly,consultantPayment,consultantOps,consultantBootFix,theme]);fs.writeFileSync(consultantPath,html,'utf8');}
 for(const file of ['admin-v5.html','consultant-panel.html','admin-v4.html','admin-invoices.html','consultant-settlements.html','finance-audit.html','finance-reports.html','order-review.html','payment.html','card-payment.html','submit-receipt.html']){const p=path.join(root,file);if(fs.existsSync(p)){let html=fs.readFileSync(p,'utf8');html=injectHead(html,[panelAuth]);const scripts=[logoutFix,roleSwitcher,theme,...(file==='admin-v5.html'?[financeBankFix,financeReceiptIntegrity]:[]),...(file==='finance-reports.html'?[financeReportAccessFix]:[])];html=inject(html,scripts);fs.writeFileSync(p,html,'utf8');}}
 const indexPath=path.join(root,'index.html');
 if(fs.existsSync(indexPath)){let html=fs.readFileSync(indexPath,'utf8');html=inject(html,[homepageRoleLogin,mediaHome,homepage,branding,theme,notifications,faqs,customerDashboard,orderCheckout,consultantCall]);for(const s of [mediaCss,homepageCss])if(!html.includes(s.split(' href="')[1].split('"')[0]))html=html.replace('</head>',`\n${s}\n</head>`);fs.writeFileSync(indexPath,html,'utf8');}
 const financePath=path.join(root,'admin-v5.html');
-if(fs.existsSync(financePath)){
-  const html=fs.readFileSync(financePath,'utf8');
-  const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js','/management-final-dashboard.js'];
-  const missing=required.filter(src=>!html.includes(src));
-  const duplicate=required.filter(src=>(html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length!==1);
-  const markerMatches=html.match(/<!-- finance-build-injection-v\d+ -->/g)||[];
-  const markers=markerMatches.length;
-  if(missing.length||duplicate.length||markers!==1){throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers+' found='+markerMatches.join('|'));}
-  console.log('BUILD VERIFY: finance injection OK; one owner, ten finance/management assets, one marker');
-}
+if(fs.existsSync(financePath)){const html=fs.readFileSync(financePath,'utf8');const required=['/finance-tools.js','/finance-dashboard.js','/finance-manager-report.js','/commission-rules.js','/finance-receipt-preview.js','/finance-audit-ledger.js','/management-kpi-dashboard.js','/management-kpi-charts.js','/management-performance-dashboard.js','/management-final-dashboard.js'];const missing=required.filter(src=>!html.includes(src));const duplicate=required.filter(src=>(html.match(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length!==1);const markerMatches=html.match(/<!-- finance-build-injection-v\d+ -->/g)||[];const markers=markerMatches.length;if(missing.length||duplicate.length||markers!==1)throw new Error('Finance build verification failed: missing='+missing.join(',')+' duplicate='+duplicate.join(',')+' markers='+markers+' found='+markerMatches.join('|'));console.log('BUILD VERIFY: finance injection OK; one owner, ten finance/management assets, one marker');}
 console.log('Role build injection completed; finance assets remain owned by finance-build-inject.js');
