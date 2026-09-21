@@ -58,7 +58,7 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
   throw new Error('FINAL BUILD CHECK FAILED: reconciliation filters are not synchronized');
 }
 
-if (!adminProfessional.includes('/admin-nav-final.js?v=1')) {
+if (!adminProfessional.includes('/admin-nav-final.js?v=2')) {
   throw new Error('FINAL BUILD CHECK FAILED: final admin navigation script is missing');
 }
 if (adminProfessional.includes('/admin-nav-fallback.js')) {
