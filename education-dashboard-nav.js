@@ -19,6 +19,7 @@
       const group=document.createElement('div');
       group.className='group';
       group.setAttribute('data-education-dashboard-link','1');
+      group.setAttribute('data-role-nav','education');
       group.innerHTML='<button class="group-title" type="button">🎓 آموزش <span>⌄</span></button><div class="sub"><button type="button" data-education-dashboard>📊 داشبورد مدیریت آموزش</button><button type="button" data-education-public>🌐 صفحه آموزش و کارگاه‌ها</button></div>';
       const title=group.querySelector('.group-title');
       const sub=group.querySelector('.sub');
