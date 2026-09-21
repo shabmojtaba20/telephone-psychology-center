@@ -59,7 +59,7 @@ if (!reconciliation.includes('afConsultant') || !reconciliation.includes('afServ
 }
 
 const adminNavMatches=(adminProfessional.match(/<script[^>]+src=[\"']\/admin-nav-final\.js\?v=[^\"']+[\"'][^>]*><\/script>/gi)||[]);
-if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=5')) {
+if (adminNavMatches.length!==1 || !adminNavMatches[0].includes('/admin-nav-final.js?v=6')) {
   throw new Error('FINAL BUILD CHECK FAILED: admin navigation must contain exactly one v5 script');
 }
 if (adminProfessional.includes('/admin-nav-fallback.js')) {
