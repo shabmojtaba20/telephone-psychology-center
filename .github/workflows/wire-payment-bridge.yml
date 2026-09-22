@@ -12,34 +12,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Activate booking and card payment bridges
+      - name: Activate booking and payment bridges
         shell: python
         run: |
           from pathlib import Path
+          import re
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          import re
           legacy = '<script type="module" src="/payment-bridge.js"></script>'
           modern = '<script type="module" src="/booking-v2.js?v=20260922-11"></script>'
           card = '<script type="module" src="/card-payment-bridge.js"></script>'
+          calendar_bridge = '<script type="module" src="/booking-calendar-bridge.js?v=1"></script>'
           changed = False
           if legacy in s:
               s = s.replace(legacy, '')
               changed = True
               print('legacy payment bridge removed')
-          cleaned = re.sub(r'<script type="module" src="/booking-v2\\.js(?:\\?[^"]*)?"></script>', '', s)
-          if cleaned != s:
-              s = cleaned
-              changed = True
-              print('all old booking v2 script tags removed')
-          if modern not in s:
-              s = s.replace('</body>', modern + '</body>')
-              changed = True
-              print('booking v2 injected')
-          if card not in s:
-              s = s.replace('</body>', card + '</body>')
-              changed = True
-              print('card payment bridge injected')
+          for pattern in (r'<script type="module" src="/booking-v2\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/card-payment-bridge\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/booking-calendar-bridge\.js(?:\?[^"]*)?"></script>'):
+              cleaned = re.sub(pattern, '', s)
+              if cleaned != s:
+                  s = cleaned
+                  changed = True
+          for tag, label in ((modern, 'booking v2'), (card, 'card payment bridge'), (calendar_bridge, 'consultant-calendar bridge')):
+              if tag not in s:
+                  s = s.replace('</body>', tag + '\n</body>')
+                  changed = True
+                  print(label + ' injected')
           if changed:
               p.write_text(s, encoding='utf-8')
           else:
@@ -54,5 +52,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'feat: activate card-to-card payment on booking'
+          git commit -m 'fix: connect consultant selection to booking calendar'
           git push
