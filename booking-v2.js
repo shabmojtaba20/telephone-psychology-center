@@ -10,23 +10,47 @@ function debugV2(stage,detail=''){
 let v2InitPromise=null;
 window.selectConsultantForBooking=async function(id){
  const booking=q('booking');
- if(booking) booking.classList.remove('hidden');
+ if(!booking)return;
+ booking.classList.remove('hidden');
+ booking.style.display='block';
+ let bf=q('bookingV2Root');
+ if(!bf){
+   const panel=booking.querySelector('.panel')||booking;
+   bf=document.createElement('div');
+   bf.id='bookingV2Root';
+   bf.className='booking-v2-root';
+   panel.appendChild(bf);
+ }
+ if(!q('bookingV2VisibleTitle')){
+   const t=document.createElement('div');
+   t.id='bookingV2VisibleTitle';
+   t.style.cssText='margin:12px 0;padding:12px;border-radius:12px;background:#eef2ff;color:#3730a3;font-weight:800';
+   t.textContent='📅 رزرو نوبت — در حال آماده‌سازی تقویم…';
+   bf.prepend(t);
+ }
  debugV2('CONSULTANT CLICK','id='+String(id||''));
  try{
-   if(!v2InitPromise) v2InitPromise=init();
+   if(!v2InitPromise)v2InitPromise=init();
    await v2InitPromise;
    let sel=q('consultantV2');
    for(let i=0;i<40&&!sel;i++){await new Promise(r=>setTimeout(r,100));sel=q('consultantV2')}
-   if(!sel){debugV2('CONSULTANT CLICK ERROR','فرم رزرو نسخه جدید آماده نشد');return}
+   if(!sel){
+     debugV2('CONSULTANT CLICK ERROR','فرم رزرو نسخه جدید آماده نشد');
+     return;
+   }
    sel.value=id;
    const opt=sel.querySelector('option[value="'+id+'"]');
    const h=q('selectedConsultantV2');
    if(h)h.textContent='مشاور انتخاب‌شده: '+(opt?.textContent||'مشاور انتخاب‌شده');
+   const title=q('bookingV2VisibleTitle');
+   if(title)title.textContent='📅 رزرو نوبت — تقویم و زمان‌های آزاد';
    debugV2('CONSULTANT SELECTED','id='+id);
    await load(id);
-   booking?.scrollIntoView({behavior:'smooth',block:'start'});
+   booking.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(err){
    debugV2('CONSULTANT FLOW ERROR',err?.message||String(err));
+   const title=q('bookingV2VisibleTitle');
+   if(title)title.textContent='⚠️ خطا در آماده‌سازی تقویم: '+(err?.message||String(err));
  }
 };
 window.addEventListener('error',e=>debugV2('JS ERROR',e.message||String(e.error||e)));
