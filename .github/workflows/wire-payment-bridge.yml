@@ -18,14 +18,20 @@ jobs:
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
+          import re
           legacy = '<script type="module" src="/payment-bridge.js"></script>'
-          modern = '<script type="module" src="/booking-v2.js"></script>'
+          modern = '<script type="module" src="/booking-v2.js?v=20260922-11"></script>'
           card = '<script type="module" src="/card-payment-bridge.js"></script>'
           changed = False
           if legacy in s:
               s = s.replace(legacy, '')
               changed = True
               print('legacy payment bridge removed')
+          cleaned = re.sub(r'<script type="module" src="/booking-v2\\.js(?:\\?[^"]*)?"></script>', '', s)
+          if cleaned != s:
+              s = cleaned
+              changed = True
+              print('all old booking v2 script tags removed')
           if modern not in s:
               s = s.replace('</body>', modern + '</body>')
               changed = True
