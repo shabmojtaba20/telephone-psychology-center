@@ -73,7 +73,7 @@ window.addEventListener('unhandledrejection',e=>debugV2('PROMISE ERROR',e.reason
  const wrap=q('slotCalendarV2'),days=q('slotDaysV2');
  if(!wrap)return;
  const available=new Map();
- slots.forEach(x=>available.set(String(x.slot_date).slice(0,10),(available.get(String(x.slot_date).slice(0,10))||0)+1));
+ slots.forEach(x=>{const d=String(x.slot_date).slice(0,10);available.set(d,(available.get(d)||0)+1)});
  if(!slots.length){wrap.innerHTML='<div class="hint">برای این مشاور نوبت آزادی ثبت نشده است.</div>';days.textContent='نوبت آزادی وجود ندارد.';return}
  if(!cal.y&&slots[0]){
    const p=String(slots[0].slot_date).slice(0,10).split('-').map(Number);
@@ -88,11 +88,13 @@ window.addEventListener('unhandledrejection',e=>debugV2('PROMISE ERROR',e.reason
  for(let i=0;i<offset;i++)h+='<button class="jc-day empty" tabindex="-1" type="button"></button>';
  for(let d=1;d<=daysInMonth;d++){
    const key=monthKey(cal.y,cal.m)+'-'+pad(d),cnt=available.get(key)||0;
-   h+='<button type="button" class="jc-day '+(cnt?'available ':'')+(selectedDate===key?'active':'')+'" data-date="'+key+'" '+(cnt?'':'disabled')+'><span class="n">'+d.toLocaleString('fa-IR')+'</span>'+(cnt?'<small>'+cnt.toLocaleString('fa-IR')+' جلسه</small>':'')+'</button>';
+   const selectedSlots=slots.filter(x=>picked.has(x.id)&&String(x.slot_date).slice(0,10)===key).length;
+   const mark=selectedSlots?'✓ ':'';
+   h+='<button type="button" class="jc-day '+(cnt?'available ':'')+(selectedDate===key?'active ':'')+(selectedSlots?'has-selection ':'')+'" data-date="'+key+'" '+(cnt?'':'disabled')+'><span class="n">'+mark+d.toLocaleString('fa-IR')+'</span>'+(cnt?'<small>'+cnt.toLocaleString('fa-IR')+' جلسه آزاد</small>':'')+'</button>';
  }
  h+='</div></div>';
  wrap.innerHTML=h;
- days.textContent=available.size?'روزهای سبز دارای نوبت آزاد هستند.':'برای این مشاور نوبت آزادی ثبت نشده است.';
+ days.textContent=available.size?'تاریخ‌های سبز قابل انتخاب‌اند. در هر تاریخ، ساعت‌های دلخواه را تیک بزنید؛ انتخاب تاریخ‌های قبلی باقی می‌ماند.':'برای این مشاور نوبت آزادی ثبت نشده است.';
  q('calPrev').onclick=()=>{cal.m--;if(cal.m<1){cal.m=12;cal.y--}calendar()};
  q('calNext').onclick=()=>{cal.m++;if(cal.m>12){cal.m=1;cal.y++}calendar()};
  wrap.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{selectedDate=b.dataset.date;calendar();renderTimes()});
