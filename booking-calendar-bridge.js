@@ -1,26 +1,62 @@
-// Connect the visible legacy consultant dropdown to the current V2 calendar.
-const connectLegacyConsultant = () => {
-  const legacy = document.getElementById('consultant');
-  if (!legacy || legacy.dataset.calendarBridgeBound === '1') return;
-  legacy.dataset.calendarBridgeBound = '1';
-  legacy.addEventListener('change', async () => {
-    const consultantId = legacy.value;
-    if (!consultantId) return;
-    const booking = document.getElementById('booking');
-    if (booking) {
-      booking.classList.remove('hidden');
-      booking.style.display = 'block';
+// Ensure the visible legacy booking calendar receives the consultant selection.
+(() => {
+  const byId = (id) => document.getElementById(id);
+  function status(message, isError = false) {
+    let node = byId('bookingCalendarBridgeStatus');
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'bookingCalendarBridgeStatus';
+      node.setAttribute('role', 'status');
+      node.style.cssText = 'margin:10px 0;padding:10px 12px;border-radius:10px;background:#eef2ff;color:#3730a3;font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:break-word';
+      const calendar = byId('bookingCalendar');
+      if (calendar?.parentNode) calendar.parentNode.insertBefore(node, calendar);
     }
-    const status = document.getElementById('scheduledAtFa');
-    if (status) status.textContent = 'در حال بارگذاری تقویم و زمان‌های آزاد مشاور…';
-    if (typeof window.selectConsultantForBooking === 'function') {
-      await window.selectConsultantForBooking(consultantId);
-      const root = document.getElementById('bookingV2Root');
-      if (root) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (status) {
-      status.textContent = 'فرم تقویم هنوز آماده نشده است؛ صفحه را یک‌بار تازه‌سازی کنید.';
-    }
-  });
-};
-connectLegacyConsultant();
-new MutationObserver(connectLegacyConsultant).observe(document.documentElement, { childList: true, subtree: true });
+    node.style.background = isError ? '#fee2e2' : '#eef2ff';
+    node.style.color = isError ? '#991b1b' : '#3730a3';
+    node.textContent = message;
+  }
+  function bind() {
+    const select = byId('consultant');
+    if (!select || select.dataset.calendarBridgeBound === '2') return;
+    select.dataset.calendarBridgeBound = '2';
+    select.addEventListener('change', async () => {
+      const id = select.value;
+      if (!id) {
+        status('برای مشاهده نوبت‌ها ابتدا مشاور را انتخاب کنید.');
+        return;
+      }
+      const section = byId('booking');
+      if (section) {
+        section.classList.remove('hidden');
+        section.style.display = 'block';
+      }
+      status('مشاور انتخاب شد؛ در حال دریافت زمان‌های آزاد…');
+      try {
+        // Always refresh the calendar that is actually present in index.html.
+        if (typeof window.loadSlots === 'function') {
+          await window.loadSlots();
+        } else {
+          status('تابع بارگذاری تقویم اصلی (loadSlots) در صفحه پیدا نشد.', true);
+        }
+        // Also notify the V2 booking flow when it is available.
+        if (typeof window.selectConsultantForBooking === 'function') {
+          await window.selectConsultantForBooking(id);
+        }
+        const calendar = byId('bookingCalendar');
+        const content = calendar?.textContent?.trim() || '';
+        if (calendar && calendar.querySelector('.cal-day.available, .jc-day.available')) {
+          status('تقویم بارگذاری شد؛ روزهای دارای نوبت مشخص شده‌اند.');
+        } else if (content) {
+          status('تقویم پاسخ داد، اما روز قابل انتخاب نمایش داده نشد. پیام تقویم: ' + content.slice(0, 220), true);
+        } else {
+          status('انتخاب مشاور انجام شد، اما محتوای تقویم خالی است. برای تشخیص خطا، نتیجه بارگذاری بررسی شود.', true);
+        }
+      } catch (error) {
+        status('خطا هنگام بارگذاری تقویم: ' + (error?.message || String(error)), true);
+        console.error('[calendar bridge]', error);
+      }
+    });
+  }
+  bind();
+  new MutationObserver(bind).observe(document.documentElement, { childList: true, subtree: true });
+})();
