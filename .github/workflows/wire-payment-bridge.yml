@@ -22,7 +22,7 @@ jobs:
           legacy = '<script type="module" src="/payment-bridge.js"></script>'
           modern = '<script type="module" src="/booking-v2.js?v=20260922-11"></script>'
           card = '<script type="module" src="/card-payment-bridge.js"></script>'
-          calendar_bridge = '<script type="module" src="/booking-calendar-bridge.js?v=1"></script>'
+          calendar_bridge = '<script type="module" src="/booking-calendar-bridge.js?v=2"></script>'
           changed = False
           if legacy in s:
               s = s.replace(legacy, '')
