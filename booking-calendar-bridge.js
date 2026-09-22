@@ -1,4 +1,4 @@
-// Ensure the visible legacy booking calendar receives the consultant selection.
+// Keep the visible legacy booking form as the single source of truth for calendar selection.
 (() => {
   const byId = (id) => document.getElementById(id);
   function status(message, isError = false) {
@@ -17,8 +17,8 @@
   }
   function bind() {
     const select = byId('consultant');
-    if (!select || select.dataset.calendarBridgeBound === '2') return;
-    select.dataset.calendarBridgeBound = '2';
+    if (!select || select.dataset.calendarBridgeBound === '3') return;
+    select.dataset.calendarBridgeBound = '3';
     select.addEventListener('change', async () => {
       const id = select.value;
       if (!id) {
@@ -32,27 +32,20 @@
       }
       status('مشاور انتخاب شد؛ در حال دریافت زمان‌های آزاد…');
       try {
-        // Always refresh the calendar that is actually present in index.html.
-        if (typeof window.loadSlots === 'function') {
-          await window.loadSlots();
-        } else {
-          status('تابع بارگذاری تقویم اصلی (loadSlots) در صفحه پیدا نشد.', true);
-        }
-        // Also notify the V2 booking flow when it is available.
-        if (typeof window.selectConsultantForBooking === 'function') {
-          await window.selectConsultantForBooking(id);
-        }
+        // The page's existing handler is responsible for loading the calendar.
+        // Do not invoke booking V2 here: its contact-only branch can replace the visible booking experience.
+        await new Promise(resolve => setTimeout(resolve, 900));
         const calendar = byId('bookingCalendar');
         const content = calendar?.textContent?.trim() || '';
-        if (calendar && calendar.querySelector('.cal-day.available, .jc-day.available')) {
+        if (calendar && calendar.querySelector('.cal-day.available')) {
           status('تقویم بارگذاری شد؛ روزهای دارای نوبت مشخص شده‌اند.');
         } else if (content) {
-          status('تقویم پاسخ داد، اما روز قابل انتخاب نمایش داده نشد. پیام تقویم: ' + content.slice(0, 220), true);
+          status('فرم تقویم اجرا شد اما روز آزاد پیدا نشد. پیام فعلی: ' + content.slice(0, 240), true);
         } else {
-          status('انتخاب مشاور انجام شد، اما محتوای تقویم خالی است. برای تشخیص خطا، نتیجه بارگذاری بررسی شود.', true);
+          status('تقویم هنوز محتوایی ندارد. بررسی کنید آیا درخواست دریافت نوبت‌ها پاسخ می‌دهد یا خطای شبکه/دسترسی دارد.', true);
         }
       } catch (error) {
-        status('خطا هنگام بارگذاری تقویم: ' + (error?.message || String(error)), true);
+        status('خطا هنگام بررسی تقویم: ' + (error?.message || String(error)), true);
         console.error('[calendar bridge]', error);
       }
     });
