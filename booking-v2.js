@@ -45,7 +45,17 @@ window.selectConsultantForBooking=async function(id){
    const title=q('bookingV2VisibleTitle');
    if(title)title.textContent='📅 رزرو نوبت — تقویم و زمان‌های آزاد';
    debugV2('CONSULTANT SELECTED','id='+id);
+   // اجرای مستقیم بارگذاری نوبت‌ها؛ این مسیر عمداً مستقل از select قدیمی است.
    await load(id);
+   const liveBox=q('slotCalendarV2');
+   const liveDebug=q('bookingDebugV2');
+   if(liveBox && slots.length){
+     const dates=[...new Set(slots.map(x=>String(x.slot_date).slice(0,10)))].filter(Boolean).sort();
+     liveBox.innerHTML='<div class="jalali-calendar"><div style="font-weight:800;margin-bottom:10px">📅 تاریخ‌های دارای نوبت آزاد</div><div class="session-grid-v2">'+dates.map(d=>'<button type="button" class="session-v2" data-direct-date="'+d+'">'+faDateSafe(d)+'</button>').join('')+'</div></div>';
+     liveBox.querySelectorAll('[data-direct-date]').forEach(b=>b.onclick=()=>{selectedDate=b.dataset.directDate;picked.clear();liveBox.querySelectorAll('[data-direct-date]').forEach(x=>x.classList.toggle('selected',x===b));renderTimes()});
+     const dayBox=q('slotDaysV2'); if(dayBox)dayBox.textContent='برای انتخاب، یکی از '+dates.length.toLocaleString('fa-IR')+' تاریخ دارای نوبت را لمس کنید.';
+     if(liveDebug)debugV2('DIRECT DATES RENDERED','dates='+dates.length);
+   }
    booking.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(err){
    debugV2('CONSULTANT FLOW ERROR',err?.message||String(err));
