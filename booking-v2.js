@@ -6,23 +6,7 @@ function debugV2(stage,detail=''){
  line.textContent='['+new Date().toLocaleTimeString('fa-IR')+'] '+stage+(detail?' — '+detail:'');
  e.prepend(line);
  console.log('[booking-v2]',stage,detail);
-}function showContactAfterConsultant(id){
- const root=q('bookingV2Root'); if(!root)return;
- const old=q('bookingContactMode'); if(old)old.remove();
- const box=document.createElement('div');
- box.id='bookingContactMode';
- box.style.cssText='margin-top:16px;padding:20px;border:1px solid #c7d2fe;background:linear-gradient(135deg,#eef2ff,#ffffff);border-radius:16px;text-align:center';
- box.innerHTML='<div style="font-size:34px;margin-bottom:8px">📞</div><h3 style="margin:0 0 8px;color:#3730a3">هماهنگی زمان مشاوره</h3><p style="margin:0;color:#475467;line-height:2">مشاور انتخاب شد. برای دریافت وقت و هماهنگی زمان مشاوره، لطفاً با مرکز تماس بگیرید.</p><div style="margin-top:12px;font-size:13px;color:#667085">تاریخ و تقویم از این مرحله حذف شده و زمان جلسه هنگام تماس با مرکز هماهنگ می‌شود.</div>';
- const cal=q('slotCalendarV2'); if(cal)cal.closest('.booking-v2-panel')?.remove();
- const book=q('bookBtnV2'); if(book)book.style.display='none';
- const reason=q('clientReasonV2')?.closest('label'); if(reason)reason.style.display='none';
- const notes=q('notesV2')?.closest('label'); if(notes)notes.style.display='none';
- const r1=q('clientReasonV2'); if(r1)r1.style.display='none';
- const r2=q('notesV2'); if(r2)r2.style.display='none';
- const steps=root.querySelector('.steps'); if(steps)steps.innerHTML='<div class="step active" style="grid-column:1/-1">📞 هماهنگی تلفنی زمان مشاوره</div>';
- root.appendChild(box);
-}
-let v2InitPromise=null;
+}let v2InitPromise=null;
 window.selectConsultantForBooking=async function(id){
  const booking=q('booking');
  if(!booking)return;
