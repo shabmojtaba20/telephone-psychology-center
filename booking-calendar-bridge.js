@@ -1,5 +1,44 @@
 // Keep the visible legacy booking form as the single source of truth for calendar selection.
 (() => {
+  // Visual-only sizing for the time cards; leave checkbox dimensions and booking logic unchanged.
+  const styleId = 'booking-time-card-size-overrides';
+  function installTimeCardStyles() {
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      /* V2 selectable time cards: enlarge the outer card, not the checkbox. */
+      .time-option-v2 {
+        min-height: 124px !important;
+        padding: 26px 24px !important;
+        gap: 18px !important;
+        border-radius: 18px !important;
+        font-size: 22px !important;
+      }
+      /* Legacy time buttons, if that view is rendered. */
+      #availableTimes .time-btn {
+        min-height: 76px !important;
+        padding: 18px 26px !important;
+        border-radius: 15px !important;
+        font-size: 21px !important;
+      }
+      @media (max-width: 600px) {
+        .time-option-v2 {
+          min-height: 112px !important;
+          padding: 22px 18px !important;
+          font-size: 20px !important;
+        }
+        #availableTimes .time-btn {
+          min-height: 70px !important;
+          padding: 16px 22px !important;
+          font-size: 19px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  installTimeCardStyles();
+
   const byId = (id) => document.getElementById(id);
   let checking = false;
   function status(message, isError = false) {
@@ -70,5 +109,5 @@
     byId('booking')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   });
   bind();
-  new MutationObserver(bind).observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(() => { bind(); installTimeCardStyles(); }).observe(document.documentElement, { childList: true, subtree: true });
 })();
