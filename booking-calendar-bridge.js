@@ -1,19 +1,30 @@
 // Keep the visible legacy booking form as the single source of truth for calendar selection.
 (() => {
-  // Visual-only sizing for the time cards; leave checkbox dimensions and booking logic unchanged.
+  // Visual-only sizing for the time cards; preserve their width and selection logic.
   const styleId = 'booking-time-card-size-overrides';
   function installTimeCardStyles() {
     if (document.getElementById(styleId)) return;
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-      /* V2 selectable time cards: enlarge the outer card, not the checkbox. */
+      /* Taller V2 time cards with the checkbox stacked inside, below the time. */
       .time-option-v2 {
-        min-height: 124px !important;
-        padding: 26px 24px !important;
-        gap: 18px !important;
+        min-height: 176px !important;
+        height: 176px !important;
+        box-sizing: border-box !important;
+        padding: 20px 16px !important;
+        gap: 16px !important;
         border-radius: 18px !important;
-        font-size: 22px !important;
+        font-size: 24px !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+      /* Keep the checkbox within the card and retain its existing dimensions. */
+      .time-option-v2 .time-checkbox-v2,
+      .time-option-v2 .visible-check-v2 {
+        flex: 0 0 auto !important;
+        margin: 0 !important;
       }
       /* Legacy time buttons, if that view is rendered. */
       #availableTimes .time-btn {
@@ -24,9 +35,10 @@
       }
       @media (max-width: 600px) {
         .time-option-v2 {
-          min-height: 112px !important;
-          padding: 22px 18px !important;
-          font-size: 20px !important;
+          min-height: 156px !important;
+          height: 156px !important;
+          padding: 18px 14px !important;
+          font-size: 22px !important;
         }
         #availableTimes .time-btn {
           min-height: 70px !important;
