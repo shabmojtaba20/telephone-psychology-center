@@ -1,18 +1,22 @@
 // Legacy booking flow bridge: calendar + multi-slot selection.
 (() => {
   const byId = id => document.getElementById(id);
+  const picked = window.__legacyPickedSlots || (window.__legacyPickedSlots = new Set());
   const status = (message, error=false) => {
     let node=byId('bookingCalendarBridgeStatus');
     if(!node){node=document.createElement('div');node.id='bookingCalendarBridgeStatus';node.className='msg';const c=byId('bookingCalendar');c?.parentNode?.insertBefore(node,c);}
     node.className='msg '+(error?'err':'ok'); node.textContent=message;
   };
   const markTime = button => {
-    button.classList.toggle('selected');
-    const selected=[...document.querySelectorAll('#availableTimes .time-btn.selected')];
-    const first=selected[0];
-    const slot=byId('slot'); if(slot) slot.value=first?.dataset.slot||'';
+    const id=String(button.dataset.slot||'');
+    if(!id)return;
+    if(picked.has(id))picked.delete(id);else picked.add(id);
+    document.querySelectorAll('#availableTimes .time-btn').forEach(b=>b.classList.toggle('selected',picked.has(String(b.dataset.slot||''))));
+    const firstId=[...picked][0]||'';
+    const first=[...document.querySelectorAll('#availableTimes .time-btn')].find(b=>String(b.dataset.slot||'')===firstId);
+    const slot=byId('slot'); if(slot) slot.value=firstId;
     const scheduled=byId('scheduledAt'); if(scheduled) scheduled.value=first?.dataset.time||'';
-    const preview=byId('scheduledAtFa'); if(preview) preview.textContent=selected.length ? 'نوبت‌های انتخاب‌شده: '+selected.length.toLocaleString('fa-IR')+' نوبت' : 'تاریخ و ساعت شمسی پس از انتخاب نوبت نمایش داده می‌شود.';
+    const preview=byId('scheduledAtFa'); if(preview) preview.textContent=picked.size ? 'نوبت‌های انتخاب‌شده: '+picked.size.toLocaleString('fa-IR')+' نوبت' : 'تاریخ و ساعت شمسی پس از انتخاب نوبت نمایش داده نمی‌شود.';
     document.dispatchEvent(new CustomEvent('legacyBookingSelectionChanged'));
   };
   document.addEventListener('click',event=>{
