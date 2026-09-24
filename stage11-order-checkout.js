@@ -4,8 +4,13 @@ const URL='https://aserkyiwwyggtixckjsv.supabase.co';
 const KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 let db=null;
 const selectedSlots=new Set();
+let supabaseClientPromise=null;
+async function getClient(){
+  if(!supabaseClientPromise) supabaseClientPromise=import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({createClient})=>createClient(URL,KEY));
+  return supabaseClientPromise;
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function client(){return db||(db=window.supabase?.createClient?window.supabase.createClient(URL,KEY):null)}
+async function client(){return db||(db=await getClient())}
 function say(t,ok=false){const msg=document.getElementById('bookMsgV2')||document.getElementById('bookMsg');if(msg){msg.className='msg '+(ok?'ok':'err');msg.textContent=t}}
 function syncFromDom(){document.querySelectorAll('.booking-v2-root input.time-checkbox-v2[type="checkbox"], .booking-v2-root .session-v2 input[type="checkbox"]').forEach(i=>{i.checked?selectedSlots.add(i.value):selectedSlots.delete(i.value)})}
 function renderAction(){
@@ -17,7 +22,7 @@ function renderAction(){
  document.getElementById('multiBookBtn').onclick=submit;
 }
 async function submit(){
- const c=client(); if(!c){say('سیستم رزرو آماده نیست.');return}
+ const c=await client(); if(!c){say('سیستم رزرو آماده نیست.');return}
  syncFromDom();
  const slotIds=[...selectedSlots];
  const serviceId=window.selectedServiceId||document.getElementById('consultant')?.dataset?.serviceId||null;
@@ -47,6 +52,7 @@ function install(){
      i.checked?selectedSlots.add(i.value):selectedSlots.delete(i.value);renderAction();
    }
  });
+ renderAction();
  const mo=new MutationObserver(()=>{syncFromDom();renderAction()});
  mo.observe(document.body,{childList:true,subtree:true});
  setInterval(()=>{syncFromDom();renderAction()},700);
