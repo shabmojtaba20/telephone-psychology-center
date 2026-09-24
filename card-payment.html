@@ -55,10 +55,10 @@ async function init(){
   const{data:{user:u}}=await sb.auth.getUser();user=u;
   if(!user){$('loading').textContent='برای پرداخت ابتدا وارد حساب کاربری شوید.';return}
   const params=new URLSearchParams(location.search);\n  const orderId=params.get('order_id')||sessionStorage.getItem('last_pending_order_id');
-  let q=sb.from('booking_orders').select('id,total_amount,payment_status,service_id,consultant_id,created_at').eq('user_id',user.id).eq('payment_status','pending');
-  if(orderId)q=q.eq('id',orderId);else q=q.order('created_at',{ascending:false}).limit(1);
-  const{data,error}=await q.maybeSingle();
+  const{data:rows,error}=await sb.rpc('get_my_booking_order',{p_order_id:orderId});
+  const data=Array.isArray(rows)?rows[0]:rows;
   if(error||!data){$('loading').textContent='سفارش قابل پرداخت پیدا نشد. لطفاً ابتدا نوبت را ثبت کنید.';return}
+  if(data.payment_status!=='pending'){$('loading').textContent='این سفارش دیگر در وضعیت قابل پرداخت نیست.';return}
   order=data;\n  try{sessionStorage.setItem('last_pending_order_id',order.id)}catch{}
   const{data:settings,error:se}=await sb.rpc('get_public_card_payment_settings');
   const cfg=Array.isArray(settings)?settings[0]:settings;
