@@ -6,15 +6,7 @@
     if (document.getElementById(styleId)) return;
     const style = document.createElement('style');
     style.id = styleId;
-    style.textContent = `
-      /* V2 card sizing is owned by booking-v2.js; this bridge must not override it. */
-      #availableTimes .time-btn {
-          min-height: 70px !important;
-          padding: 16px 22px !important;
-          font-size: 19px !important;
-        }
-      }
-    `;
+    style.textContent = `#availableTimes .time-btn{min-height:70px!important;padding:16px 22px!important;font-size:19px!important}`;
     document.head.appendChild(style);
   }
   installTimeCardStyles();
