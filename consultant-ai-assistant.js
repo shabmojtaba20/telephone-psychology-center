@@ -1,143 +1,20 @@
 (() => {
-  const SB_URL = 'https://aserkyiwwyggtixckjsv.supabase.co';
-  const SB_KEY = 'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
+  const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
+  const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
   let db;
-
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-
-  const fmtDate = (v) => {
-    try {
-      return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{
-        year:'numeric',month:'long',day:'numeric',weekday:'long',
-        hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tehran'
-      }).format(new Date(v));
-    } catch (_) { return String(v || ''); }
-  };
-
-  function ensureDb() {
-    if (!db && window.supabase) db = window.supabase.createClient(SB_URL, SB_KEY);
-    return db;
-  }
-
-  function extractInvokeError(error, data) {
-    if (data?.error) return data.error + (data.detail ? ' — ' + data.detail : '');
-    const ctx = error?.context;
-    if (ctx?.body) {
-      try {
-        const body = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body;
-        if (body?.error) return body.error + (body.detail ? ' — ' + body.detail : '');
-        if (body?.message) return body.message;
-      } catch (_) {}
-    }
-    return error?.message || 'تولید تحلیل هوش مصنوعی ناموفق بود.';
-  }
-
-  function fallbackRecommendations(topics) {
-    const t = Array.isArray(topics) ? topics : [];
-    return t.length ? [
-      'در جلسه ابتدا زمان شروع، روند و شدت موضوع را با مراجعه‌کننده روشن کنید.',
-      'موقعیت‌ها و عوامل مرتبط با تشدید یا کاهش موضوع را بررسی کنید.',
-      'تأثیر موضوع بر خواب، کار، روابط و فعالیت‌های روزمره را ارزیابی کنید.',
-      'هدف مراجعه‌کننده از جلسه و انتظار او از فرایند مشاوره را مشخص کنید.'
-    ] : [];
-  }
-
-  function renderResult(box, data) {
-    const topics = Array.isArray(data?.topics) ? data.topics : [];
-    const recommendations = Array.isArray(data?.recommendations) && data.recommendations.length
-      ? data.recommendations : fallbackRecommendations(topics);
-    const items = topics.filter(Boolean).slice(0,6).map(t => '<li>' + esc(t) + '</li>').join('');
-    const recs = recommendations.filter(Boolean).slice(0,6).map(t => '<li>' + esc(t) + '</li>').join('');
-    box.innerHTML = '<div class="mini" style="margin-top:10px;background:#fafbff">' +
-      '<div><strong>🧠 خلاصه تحلیل اولیه</strong></div>' +
-      '<p style="white-space:pre-wrap;margin:8px 0 12px">' + esc(data?.summary || '') + '</p>' +
-      (items ? '<div><strong>محورهای پیشنهادی بررسی</strong></div><ul style="margin:8px 0;padding-right:20px">' + items + '</ul>' : '') +
-      (recs ? '<div style="margin-top:10px"><strong>💡 راهکارهای پیشنهادی اولیه</strong></div><ul style="margin:8px 0;padding-right:20px">' + recs + '</ul>' : '') +
-      '<div class="muted" style="margin-top:8px">' +
-      (data?.cached ? 'این تحلیل قبلاً ذخیره شده است.' : 'تحلیل برای این نوبت تولید و ذخیره شد.') +
-      ' این خروجی غیرتشخیصی است و جایگزین قضاوت حرفه‌ای مشاور نیست.</div></div>';
-  }
-
-  async function generate(appointmentId, button, box) {
-    button.disabled = true;
-    button.textContent = 'در حال تحلیل...';
-    box.innerHTML = '<div class="mini">در حال آماده‌سازی تحلیل اولیه...</div>';
-    try {
-      const client = ensureDb();
-      if (!client) throw new Error('اتصال به Supabase برقرار نشد.');
-      const { data, error } = await client.functions.invoke('appointment-ai-summary', {
-        body: { appointment_id: appointmentId, regenerate: false }
-      });
-      if (error) throw new Error(extractInvokeError(error, data));
-      if (data?.error) throw new Error(extractInvokeError(null, data));
-      renderResult(box, data);
-      button.textContent = '🧠 تحلیل هوش مصنوعی رایگان';
-      button.classList.add('green');
-    } catch (e) {
-      box.innerHTML = '<div class="msg err">' + esc(e?.message || 'تولید تحلیل هوش مصنوعی ناموفق بود.') + '</div>';
-      button.textContent = '🧠 تحلیل هوش مصنوعی رایگان';
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function enhanceCards() {
-    const list = document.getElementById('appointmentList');
-    if (!list) return false;
-    list.querySelectorAll('.appointment').forEach(card => {
-      if (card.querySelector('[data-ai-free]')) return;
-      const idButton = card.querySelector('[data-a]');
-      const appointmentId = idButton?.dataset?.a;
-      if (!appointmentId) return;
-
-      const paymentText = (card.textContent || '').toLowerCase();
-      const paid = paymentText.includes('پرداخت: paid') || paymentText.includes('پرداخت: پرداخت‌شده');
-      if (!paid) return;
-
-      const reason = card.querySelector('.reason');
-      if (!reason) return;
-
-      const wrap = document.createElement('div');
-      wrap.className = 'actions';
-      wrap.style.marginTop = '9px';
-      wrap.innerHTML =
-        '<button type="button" class="btn green" data-ai-free="' + esc(appointmentId) + '">🧠 تحلیل هوش مصنوعی رایگان</button>' +
-        '<div data-ai-result="' + esc(appointmentId) + '" style="width:100%"></div>';
-      reason.insertAdjacentElement('afterend', wrap);
-    });
-    return true;
-  }
-
-  function bind() {
-    const list = document.getElementById('appointmentList');
-    if (!list || list.dataset.aiBound === '1') return;
-    list.dataset.aiBound = '1';
-    list.addEventListener('click', async (event) => {
-      const button = event.target.closest('[data-ai-free]');
-      if (!button) return;
-      const id = button.getAttribute('data-ai-free');
-      const box = list.querySelector('[data-ai-result="' + CSS.escape(id) + '"]');
-      if (box) await generate(id, button, box);
-    });
-  }
-
-  function boot() {
-    bind();
-    enhanceCards();
-    const list = document.getElementById('appointmentList');
-    if (list && !list.dataset.aiObserver) {
-      list.dataset.aiObserver = '1';
-      new MutationObserver(() => enhanceCards()).observe(list, { childList:true, subtree:true });
-    }
-  }
-
-  let tries = 0;
-  const retry = () => {
-    tries++;
-    boot();
-    if (tries < 60 && !document.getElementById('appointmentList')) setTimeout(retry, 500);
-  };
-  retry();
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ensureDb=()=>{if(!db&&window.supabase)db=window.supabase.createClient(SB_URL,SB_KEY);return db};
+  function extractInvokeError(error,data){if(data?.error)return data.error+(data.detail?' — '+data.detail:'');const ctx=error?.context;if(ctx?.body){try{const b=typeof ctx.body==='string'?JSON.parse(ctx.body):ctx.body;if(b?.error)return b.error+(b.detail?' — '+b.detail:'');if(b?.message)return b.message}catch(_){}}return error?.message||'تولید تحلیل هوش مصنوعی ناموفق بود.'}
+  function fallbackRecommendations(topics){return Array.isArray(topics)&&topics.length?['در جلسه ابتدا زمان شروع، روند و شدت موضوع را روشن کنید.','موقعیت‌ها و عوامل مرتبط با تشدید یا کاهش موضوع را بررسی کنید.','تأثیر موضوع بر خواب، کار، روابط و فعالیت‌های روزمره را ارزیابی کنید.','هدف مراجعه‌کننده و انتظار او از فرایند مشاوره را مشخص کنید.']:[]}
+  function renderResult(box,data){const topics=Array.isArray(data?.topics)?data.topics:[],recs=Array.isArray(data?.recommendations)&&data.recommendations.length?data.recommendations:fallbackRecommendations(topics),items=topics.filter(Boolean).slice(0,6).map(t=>'<li>'+esc(t)+'</li>').join(''),rs=recs.filter(Boolean).slice(0,6).map(t=>'<li>'+esc(t)+'</li>').join('');box.innerHTML='<div class="mini" style="margin-top:10px;background:#fafbff"><div><strong>🧠 خلاصه تحلیل اولیه</strong></div><p style="white-space:pre-wrap;margin:8px 0 12px">'+esc(data?.summary||'')+'</p>'+(items?'<div><strong>محورهای پیشنهادی بررسی</strong></div><ul style="margin:8px 0;padding-right:20px">'+items+'</ul>':'')+(rs?'<div style="margin-top:10px"><strong>💡 راهکارهای پیشنهادی اولیه</strong></div><ul style="margin:8px 0;padding-right:20px">'+rs+'</ul>':'')+'<div class="muted" style="margin-top:8px">'+(data?.cached?'این تحلیل قبلاً ذخیره شده است.':'تحلیل برای این نوبت تولید و ذخیره شد.')+' این خروجی غیرتشخیصی است و جایگزین قضاوت حرفه‌ای مشاور نیست.</div></div>'}
+  async function generate(id,button,box){button.disabled=true;button.textContent='در حال تحلیل...';box.innerHTML='<div class="mini">در حال آماده‌سازی تحلیل اولیه...</div>';try{const c=ensureDb();if(!c)throw new Error('اتصال به Supabase برقرار نشد.');const r=await c.functions.invoke('appointment-ai-summary',{body:{appointment_id:id,regenerate:false}});if(r.error)throw new Error(extractInvokeError(r.error,r.data));if(r.data?.error)throw new Error(extractInvokeError(null,r.data));renderResult(box,r.data);button.textContent='🧠 تحلیل هوش مصنوعی رایگان';button.classList.add('green')}catch(e){box.innerHTML='<div class="msg err">'+esc(e?.message||'تولید تحلیل هوش مصنوعی ناموفق بود.')+'</div>';button.textContent='🧠 تحلیل هوش مصنوعی رایگان'}finally{button.disabled=false}}
+  async function saveNote(id,textarea,button){button.disabled=true;try{const r=await ensureDb().rpc('save_my_appointment_consultant_note',{p_appointment_id:id,p_note:textarea.value.trim()});if(r.error)throw r.error;button.textContent='✓ ذخیره شد';setTimeout(()=>button.textContent='ذخیره یادداشت',1200)}catch(e){alert(e?.message||'ذخیره یادداشت ناموفق بود.');button.textContent='ذخیره یادداشت'}finally{button.disabled=false}}
+  async function loadAssessment(id,form){try{const r=await ensureDb().rpc('get_my_appointment_intake_assessment',{p_appointment_id:id});if(!r.error&&r.data&&typeof r.data==='object'){Object.entries(r.data).forEach(([k,v])=>{const el=form.querySelector('[data-intake-q="'+k+'"]');if(el)el.value=v||''})}}catch(_){}} 
+  async function saveAssessment(id,form,button){const answers={};form.querySelectorAll('[data-intake-q]').forEach(x=>answers[x.dataset.intakeQ]=x.value.trim());button.disabled=true;try{const r=await ensureDb().rpc('save_my_appointment_intake_assessment',{p_appointment_id:id,p_answers:answers});if(r.error)throw r.error;button.textContent='✓ فرم ذخیره شد';setTimeout(()=>button.textContent='ذخیره فرم ارزیابی',1200)}catch(e){alert(e?.message||'ذخیره فرم ارزیابی ناموفق بود.')}finally{button.disabled=false}}
+  function addAssessment(card,id,age){if(!age||card.querySelector('[data-intake-form]'))return;const wrap=document.createElement('div');wrap.className='reason';wrap.style.cssText='margin-top:10px;background:#f0fdf4;border:1px solid #bbf7d0';wrap.innerHTML='<div><strong>📋 فرم ارزیابی اولیه ۱۰ سوالی</strong></div><div class="muted" style="margin:6px 0 10px">فرم ساختاریافته برای شروع جلسه است و ابزار تشخیص پزشکی نیست.</div><div data-intake-form class="formgrid"><label class="field"><span>1. مهم‌ترین مسئله یا نگرانی فعلی مراجعه‌کننده چیست؟</span><textarea data-intake-q="1" rows="2"></textarea></label><label class="field"><span>2. این مسئله از چه زمانی شروع شده و روند آن چگونه بوده است؟</span><textarea data-intake-q="2" rows="2"></textarea></label><label class="field"><span>3. شدت یا میزان تکرار این مسئله چقدر است؟</span><textarea data-intake-q="3" rows="2"></textarea></label><label class="field"><span>4. چه موقعیت‌ها یا عواملی آن را تشدید یا کاهش می‌دهند؟</span><textarea data-intake-q="4" rows="2"></textarea></label><label class="field"><span>5. این مسئله چه اثری بر خواب، کار/تحصیل، روابط یا فعالیت‌های روزمره دارد؟</span><textarea data-intake-q="5" rows="2"></textarea></label><label class="field"><span>6. آیا تجربه مشابه یا سابقه مرتبطی در گذشته وجود داشته است؟</span><textarea data-intake-q="6" rows="2"></textarea></label><label class="field"><span>7. در حال حاضر چه راه‌هایی برای مقابله یا مدیریت مسئله استفاده می‌شود؟</span><textarea data-intake-q="7" rows="2"></textarea></label><label class="field"><span>8. مراجعه‌کننده از این جلسه و فرایند مشاوره چه انتظاری دارد؟</span><textarea data-intake-q="8" rows="2"></textarea></label><label class="field"><span>9. چه نکته یا نگرانی مهم دیگری باید مشاور در جلسه بداند؟</span><textarea data-intake-q="9" rows="2"></textarea></label><label class="field"><span>10. هدف کوتاه‌مدت قابل دستیابی برای ادامه مشاوره چیست؟</span><textarea data-intake-q="10" rows="2"></textarea></label></div><div class="actions" style="margin-top:8px"><button type="button" class="btn green" data-save-intake="'+id+'">ذخیره فرم ارزیابی</button></div>';card.appendChild(wrap);loadAssessment(id,wrap)}
+  function enhanceCards(){const list=document.getElementById('appointmentList');if(!list)return;list.querySelectorAll('.appointment').forEach(card=>{const id=card.dataset.appointmentId||card.querySelector('[data-a]')?.dataset?.a;if(!id)return;const age=Number(card.dataset.clientAge||0);const note=card.querySelector('[data-consultant-note]'),save=card.querySelector('[data-save-consultant-note]');if(save&&!save.dataset.bound){save.dataset.bound='1';save.onclick=()=>saveNote(id,note,save)}if(!card.querySelector('[data-ai-free]')){const payment=(card.textContent||'').toLowerCase(),paid=payment.includes('پرداخت: paid')||payment.includes('پرداخت: پرداخت‌شده'),reason=card.querySelector('.reason');if(paid&&reason){const wrap=document.createElement('div');wrap.className='actions';wrap.style.marginTop='9px';wrap.innerHTML='<button type="button" class="btn green" data-ai-free="'+esc(id)+'">🧠 تحلیل هوش مصنوعی رایگان</button><div data-ai-result="'+esc(id)+'" style="width:100%"></div>';reason.insertAdjacentElement('afterend',wrap)}}addAssessment(card,id,age)})}
+  function bind(){const list=document.getElementById('appointmentList');if(!list||list.dataset.aiBound==='1')return;list.dataset.aiBound='1';list.addEventListener('click',async e=>{const ai=e.target.closest('[data-ai-free]');if(ai){const id=ai.dataset.aiFree,box=list.querySelector('[data-ai-result="'+CSS.escape(id)+'"]');if(box)await generate(id,ai,box)}})}
+  function boot(){bind();enhanceCards();const list=document.getElementById('appointmentList');if(list&&!list.dataset.aiObserver){list.dataset.aiObserver='1';new MutationObserver(()=>enhanceCards()).observe(list,{childList:true,subtree:true})}}
+  let tries=0;const retry=()=>{tries++;boot();if(tries<60&&!document.getElementById('appointmentList'))setTimeout(retry,500)};retry();
+  document.addEventListener('click',e=>{const b=e.target.closest?.('[data-save-intake]');if(!b)return;const form=b.closest('[data-intake-form]')||b.parentElement?.previousElementSibling;if(form&&form.matches('[data-intake-form]'))saveAssessment(b.dataset.saveIntake,form,b)});
 })();
