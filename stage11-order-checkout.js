@@ -5,7 +5,7 @@ const KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 let clientPromise;
 const client=()=>clientPromise||(clientPromise=import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(({createClient})=>createClient(URL,KEY)));
 const q=id=>document.getElementById(id);
-function selected(){return [...document.querySelectorAll('#availableTimes .time-btn.selected')].map(x=>x.dataset.slot).filter(Boolean)}
+function selected(){const set=window.__legacyPickedSlots;return set instanceof Set?[...set].map(String).filter(Boolean):[...document.querySelectorAll('#availableTimes .time-btn.selected')].map(x=>x.dataset.slot).filter(Boolean)}
 function render(){
   const host=q('availableTimes'); if(!host)return;
   let box=q('multiBookingAction');
