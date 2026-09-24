@@ -45,7 +45,8 @@ const sb=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable
 const $=id=>document.getElementById(id),money=n=>Number(n||0).toLocaleString('fa-IR');
 let order=null,user=null;
 function msg(t,ok=false){$('msg').className='msg '+(ok?'ok':'err');$('msg').textContent=t}
-function showSuccess(){\n  try{sessionStorage.removeItem('last_pending_order_id')}catch{}
+function showSuccess(){
+  try{sessionStorage.removeItem('last_pending_order_id')}catch{}
   $('paymentForm').classList.add('hidden');
   $('successBox').classList.remove('hidden');
   $('tracking').value='';$('last4').value='';$('receipt').value='';
@@ -54,12 +55,14 @@ function showSuccess(){\n  try{sessionStorage.removeItem('last_pending_order_id'
 async function init(){
   const{data:{user:u}}=await sb.auth.getUser();user=u;
   if(!user){$('loading').textContent='برای پرداخت ابتدا وارد حساب کاربری شوید.';return}
-  const params=new URLSearchParams(location.search);\n  const orderId=params.get('order_id')||sessionStorage.getItem('last_pending_order_id');
+  const params=new URLSearchParams(location.search);
+  const orderId=params.get('order_id')||sessionStorage.getItem('last_pending_order_id');
   const{data:rows,error}=await sb.rpc('get_my_booking_order',{p_order_id:orderId});
   const data=Array.isArray(rows)?rows[0]:rows;
   if(error||!data){$('loading').textContent='سفارش قابل پرداخت پیدا نشد. لطفاً ابتدا نوبت را ثبت کنید.';return}
   if(data.payment_status!=='pending'){$('loading').textContent='این سفارش دیگر در وضعیت قابل پرداخت نیست.';return}
-  order=data;\n  try{sessionStorage.setItem('last_pending_order_id',order.id)}catch{}
+  order=data;
+  try{sessionStorage.setItem('last_pending_order_id',order.id)}catch{}
   const{data:settings,error:se}=await sb.rpc('get_public_card_payment_settings');
   const cfg=Array.isArray(settings)?settings[0]:settings;
   if(se||!cfg?.card_number){$('loading').textContent='پرداخت کارت‌به‌کارت در حال حاضر فعال نیست.';return}
