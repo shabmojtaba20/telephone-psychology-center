@@ -117,7 +117,20 @@
       </div>`;
   }
 
-  function extractInvokeError(error, data) {\n    if (data?.error) return data.error + (data.detail ? ' — ' + data.detail : '');\n    const ctx = error?.context;\n    if (ctx?.body) {\n      try { const body = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body; if (body?.error) return body.error + (body.detail ? ' — ' + body.detail : ''); if (body?.message) return body.message; } catch (_) {}\n    }\n    return error?.message || 'تولید تحلیل هوش مصنوعی ناموفق بود.';\n  }\n\n  async function generate(regenerate) {
+  function extractInvokeError(error, data) {
+    if (data?.error) return data.error + (data.detail ? ' — ' + data.detail : '');
+    const ctx = error?.context;
+    if (ctx?.body) {
+      try {
+        const body = typeof ctx.body === 'string' ? JSON.parse(ctx.body) : ctx.body;
+        if (body?.error) return body.error + (body.detail ? ' — ' + body.detail : '');
+        if (body?.message) return body.message;
+      } catch (_) {}
+    }
+    return error?.message || 'تولید تحلیل هوش مصنوعی ناموفق بود.';
+  }
+
+  async function generate(regenerate) {
     const id = selectedId;
     if (!id) return;
     const row = rows.find(x => x.id === id);
