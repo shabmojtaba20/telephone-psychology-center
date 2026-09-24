@@ -11,9 +11,12 @@ function render(){
   let box=q('multiBookingAction');
   if(!box){
     box=document.createElement('div');box.id='multiBookingAction';box.style.cssText='margin-top:14px;padding:14px;border:1px solid #c7d2fe;border-radius:14px;background:#f8faff';
+    const referralLabel=document.createElement('label');referralLabel.htmlFor='supportReferralCode';referralLabel.textContent='کد معرفی‌نامه حمایتی (اختیاری)';referralLabel.style.cssText='display:block;font-weight:700;margin:0 0 6px';
+    const referralInput=document.createElement('input');referralInput.id='supportReferralCode';referralInput.type='text';referralInput.autocomplete='off';referralInput.inputMode='text';referralInput.placeholder='کد درج‌شده روی معرفی‌نامه';referralInput.maxLength=80;referralInput.style.cssText='display:block;width:100%;box-sizing:border-box;padding:11px;border:1px solid #cbd5e1;border-radius:10px;background:white;font:inherit;margin:0 0 12px';
+    const referralHint=document.createElement('small');referralHint.textContent='اگر معرفی‌نامه سازمانی دارید، کد آن را وارد کنید؛ در غیر این صورت خالی بگذارید.';referralHint.style.cssText='display:block;color:#64748b;font-size:12px;line-height:1.8;margin:-6px 0 12px';
     const status=document.createElement('div');status.id='multiBookingStatus';status.style.cssText='font-weight:800;margin-bottom:8px';
     const btn=document.createElement('button');btn.type='button';btn.id='multiBookBtn';btn.className='btn';btn.style.cssText='width:100%;font-size:16px;padding:13px';btn.textContent='رزرو و ادامه';btn.addEventListener('click',submit);
-    box.append(status,btn);host.parentNode?.insertBefore(box,host.nextSibling);
+    box.append(referralLabel,referralInput,referralHint,status,btn);host.parentNode?.insertBefore(box,host.nextSibling);
   }
   const n=selected().length;
   const status=q('multiBookingStatus'),btn=q('multiBookBtn');
