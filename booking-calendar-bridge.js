@@ -7,40 +7,8 @@
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-      /* Taller V2 time cards with the checkbox stacked inside, below the time. */
-      .time-option-v2 {
-        min-height: 176px !important;
-        height: 176px !important;
-        box-sizing: border-box !important;
-        padding: 20px 16px !important;
-        gap: 16px !important;
-        border-radius: 18px !important;
-        font-size: 24px !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-      }
-      /* Keep the checkbox within the card and retain its existing dimensions. */
-      .time-option-v2 .time-checkbox-v2,
-      .time-option-v2 .visible-check-v2 {
-        flex: 0 0 auto !important;
-        margin: 0 !important;
-      }
-      /* Legacy time buttons, if that view is rendered. */
+      /* V2 card sizing is owned by booking-v2.js; this bridge must not override it. */
       #availableTimes .time-btn {
-        min-height: 76px !important;
-        padding: 18px 26px !important;
-        border-radius: 15px !important;
-        font-size: 21px !important;
-      }
-      @media (max-width: 600px) {
-        .time-option-v2 {
-          min-height: 156px !important;
-          height: 156px !important;
-          padding: 18px 14px !important;
-          font-size: 22px !important;
-        }
-        #availableTimes .time-btn {
           min-height: 70px !important;
           padding: 16px 22px !important;
           font-size: 19px !important;
