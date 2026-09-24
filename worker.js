@@ -68,6 +68,15 @@ export default {
       return new Response(html, { status: response.status, statusText: response.statusText, headers });
     }
 
+    if (path === "/zarinpal-callback") {
+      const target = new URL("https://aserkyiwwyggtixckjsv.supabase.co/functions/v1/zarinpal-callback");
+      target.search = url.search;
+      return fetch(new Request(target, {
+        method: "GET",
+        headers: { "Accept": "text/html,application/xhtml+xml" }
+      }));
+    }
+
     return env.ASSETS.fetch(request);
   }
 };
