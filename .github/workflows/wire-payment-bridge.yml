@@ -23,17 +23,18 @@ jobs:
           modern = '<script type="module" src="/booking-v2.js?v=20260922-11"></script>'
           card = '<script type="module" src="/card-payment-bridge.js"></script>'
           calendar_bridge = '<script type="module" src="/booking-calendar-bridge.js?v=2"></script>'
+          checkout = '<script type="module" src="/stage11-order-checkout.js?v=20260924-1"></script>'
           changed = False
           if legacy in s:
               s = s.replace(legacy, '')
               changed = True
               print('legacy payment bridge removed')
-          for pattern in (r'<script type="module" src="/booking-v2\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/card-payment-bridge\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/booking-calendar-bridge\.js(?:\?[^"]*)?"></script>'):
+          for pattern in (r'<script type="module" src="/booking-v2\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/card-payment-bridge\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/booking-calendar-bridge\.js(?:\?[^"]*)?"></script>', r'<script type="module" src="/stage11-order-checkout\.js(?:\?[^"]*)?"></script>'):
               cleaned = re.sub(pattern, '', s)
               if cleaned != s:
                   s = cleaned
                   changed = True
-          for tag, label in ((modern, 'booking v2'), (card, 'card payment bridge'), (calendar_bridge, 'consultant-calendar bridge')):
+          for tag, label in ((modern, 'booking v2'), (card, 'card payment bridge'), (calendar_bridge, 'consultant-calendar bridge'), (checkout, 'multi-slot checkout')):
               if tag not in s:
                   s = s.replace('</body>', tag + '\n</body>')
                   changed = True
