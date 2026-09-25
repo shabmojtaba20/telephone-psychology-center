@@ -90,6 +90,7 @@ export class CallSignalingRoom extends DurableObject {
     this.clients.set(id,{ws:server,userId,role});
     const peers=[...this.clients.entries()].filter(([k])=>k!==id).map(([k,v])=>({id:k,user_id:v.userId,role:v.role}));
     server.send(JSON.stringify({type:"joined",self_id:id,peers}));
+    for(const [k,peer] of this.clients){if(k!==id)try{peer.ws.send(JSON.stringify({type:"peer_joined",peer:{id,user_id:userId,role}}));}catch{}}
     const relay=(payload)=>{
       if(payload.to){const peer=this.clients.get(String(payload.to));if(peer)peer.ws.send(JSON.stringify({...payload,from:id}));}
       else for(const [k,peer] of this.clients)if(k!==id)peer.ws.send(JSON.stringify({...payload,from:id}));
