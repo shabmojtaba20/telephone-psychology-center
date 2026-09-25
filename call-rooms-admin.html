@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>اتاق‌های جلسات آنلاین</title>
+<style>body{margin:0;background:#f5f7fb;color:#182033;font-family:Tahoma,Arial,sans-serif}.wrap{max-width:1250px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:9px 14px;background:#5b5bd6;color:#fff;text-decoration:none;cursor:pointer}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;margin:14px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stat b{display:block;font-size:24px;margin-top:7px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:right}.muted{color:#6b7280;font-size:13px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff}.ok{background:#ecfdf3;color:#166534}.warn{background:#fff7ed;color:#9a3412}@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}</style></head>
+<body><main class="wrap"><div class="top"><div><h1>📞 اتاق‌های جلسات آنلاین</h1><p class="muted">نظارت بر اتاق‌های مشاوره خصوصی و کارگاه‌ها</p></div><a class="btn" href="/admin-professional.html">بازگشت به پنل</a></div>
+<div id="msg" class="muted">در حال بارگذاری...</div><div id="stats" class="stats"></div>
+<div class="card"><div class="top"><h2>اتاق‌ها</h2><button class="btn" id="refresh">به‌روزرسانی</button></div><div class="tablewrap"><table><thead><tr><th>نوع</th><th>شناسه اتاق</th><th>شروع</th><th>پایان</th><th>وضعیت</th><th>ایجاد</th></tr></thead><tbody id="rows"></tbody></table></div></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const db=supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'),$=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+async function load(){
+ const g=await db.rpc('has_admin_permission',{p_permission:'calls.manage'});
+ if(g.error||g.data!==true){$('msg').textContent='دسترسی غیرمجاز: مجوز calls.manage لازم است.';return}
+ const r=await db.from('call_rooms').select('id,room_type,room_key,status,starts_at,ends_at,created_at').order('starts_at',{ascending:false}).limit(200);
+ if(r.error){$('msg').textContent='خطا: '+r.error.message;return}
+ const rows=r.data||[],now=Date.now();const counts={total:rows.length,waiting:rows.filter(x=>x.status==='waiting').length,active:rows.filter(x=>x.status==='active').length,ended:rows.filter(x=>x.status==='ended').length};
+ $('stats').innerHTML=[['کل اتاق‌ها',counts.total],['در انتظار',counts.waiting],['فعال',counts.active],['پایان‌یافته',counts.ended]].map(x=>'<div class="card stat"><span class="muted">'+x[0]+'</span><b>'+x[1].toLocaleString('fa-IR')+'</b></div>').join('');
+ $('rows').innerHTML=rows.length?rows.map(x=>'<tr><td>'+esc(x.room_type==='private_consultation'?'مشاوره خصوصی':'کارگاه')+'</td><td><code>'+esc(x.room_key)+'</code></td><td>'+new Date(x.starts_at).toLocaleString('fa-IR')+'</td><td>'+new Date(x.ends_at).toLocaleString('fa-IR')+'</td><td><span class="badge '+(x.status==='active'?'ok':x.status==='waiting'?'warn':'')+'">'+esc(x.status)+'</span></td><td>'+new Date(x.created_at).toLocaleString('fa-IR')+'</td></tr>').join(''):'<tr><td colspan="6">هنوز اتاقی ایجاد نشده است.</td></tr>';
+ $('msg').textContent='اطلاعات اتاق‌ها با مجوز مدیریتی خوانده شد.';
+}
+$('refresh').onclick=load;load();
+</script></body></html>
