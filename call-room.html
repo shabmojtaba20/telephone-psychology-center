@@ -114,6 +114,7 @@ async function handleAnswer(m){const pc=peers.get(m.from);if(pc)await pc.setRemo
 async function handleIce(m){const pc=peers.get(m.from);if(pc){try{await pc.addIceCandidate(m.candidate)}catch{}}}
 async function join(){
  if(joined)return;
+ closing=false;reconnectAttempts=0;
  $('join').disabled=true;
  try{
   session=await getSession();
