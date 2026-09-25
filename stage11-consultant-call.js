@@ -8,6 +8,7 @@ wait(async()=>{
  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
  const db=createClient(SB_URL,SB_KEY);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let notified=new Set();
  const render=()=>{
   document.querySelectorAll('#myAppointmentsList [data-appointment-id]').forEach(card=>{
    const slot=card.querySelector('.stage11-call-slot');if(!slot)return;
@@ -15,6 +16,7 @@ wait(async()=>{
    const status=card.dataset.appointmentStatus,pay=card.dataset.paymentStatus,now=Date.now();
    const eligible=status==='confirmed'&&pay==='paid';
    const active=eligible&&now>=start&&now<start+60*60*1000;
+   if(active&&!notified.has(id)&&window.callNotifications?.isEnabled?.()){notified.add(id);window.callNotifications.notify('📞 تماس با مشاور فعال شد','زمان نوبت شما رسیده است. برای ورود به تماس با مشاور، دکمه «تماس با مشاور» را بزنید.',location.origin+'/#myAppointments');try{navigator.vibrate?.([400,120,400,120,700])}catch{}}
    const future=eligible&&now<start;
    const ended=status==='completed'||(eligible&&now>=start+60*60*1000);
    slot.innerHTML='';
