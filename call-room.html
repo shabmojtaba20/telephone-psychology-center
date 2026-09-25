@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#312e81">
+<title>اتاق مشاوره آنلاین</title>
+<style>
+body{margin:0;background:#f6f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
+.wrap{max-width:900px;margin:auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 8px 30px #1118270d}
+h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{margin:12px 0;padding:11px;border-radius:11px;background:#eef2ff;color:#3730a3}.ok{background:#ecfdf5;color:#166534}.err{background:#fff1f2;color:#9f1239}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn{border:0;border-radius:10px;padding:10px 14px;background:#4f46e5;color:#fff;font:inherit;font-weight:700;cursor:pointer}.btn.red{background:#b42318}.btn.gray{background:#667085}
+.videos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.videoBox{position:relative;background:#111827;border-radius:15px;overflow:hidden;min-height:220px}.videoBox video{width:100%;height:100%;min-height:220px;object-fit:cover;background:#111827}.label{position:absolute;right:9px;top:9px;background:#0009;color:#fff;padding:5px 8px;border-radius:8px;font-size:12px}
+@media(max-width:700px){.wrap{padding:10px}.videos{grid-template-columns:1fr}.videoBox,.videoBox video{min-height:240px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="card">
+<h1>🎥 اتاق مشاوره آنلاین</h1>
+<div id="who" class="muted">در حال آماده‌سازی...</div>
+<div id="status" class="status">در حال اتصال...</div>
+<div class="actions">
+<button id="join" class="btn">🎙️ ورود به تماس</button>
+<button id="mic" class="btn gray" disabled>🎙️ میکروفون</button>
+<button id="cam" class="btn gray" disabled>📷 دوربین</button>
+<button id="hangup" class="btn red" disabled>⏹ پایان تماس</button>
+<a class="btn gray" href="/">بازگشت</a>
+</div>
+<div class="videos">
+<div class="videoBox"><span class="label">شما</span><video id="local" autoplay muted playsinline></video></div>
+<div class="videoBox"><span class="label">طرف مقابل</span><video id="remote" autoplay playsinline></video></div>
+</div>
+</section>
+</main>
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
+const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
+const db=createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
+const appointmentId=new URLSearchParams(location.search).get('appointment_id');
+const mode=new URLSearchParams(location.search).get('role')||'client';
+let room=null,ws=null,localStream=null,joined=false;
+const peers=new Map();
+const rtcConfig={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+function status(t,kind=''){ $('status').className='status '+kind; $('status').textContent=t; }
+function say(t){$('who').textContent=t}
+async function getSession(){const {data,error}=await db.auth.getSession();if(error||!data.session)throw new Error('ابتدا وارد حساب کاربری شوید.');return data.session}
+async function prepareRoom(){
+ if(!appointmentId)throw new Error('شناسه نوبت مشخص نیست.');
+ const rpcName=mode==='consultant'?'get_or_create_my_consultant_call_room':'get_or_create_my_call_room';
+ const args={p_appointment_id:appointmentId};
+ const {data,error}=await db.rpc(rpcName,args);
+ if(error)throw new Error(error.message||'اتاق تماس ساخته نشد.');
+ const row=Array.isArray(data)?data[0]:data;
+ if(!row?.room_key)throw new Error('کلید اتاق تماس دریافت نشد.');
+ return {room_key:row.room_key,room_id:row.room_id||row.id,status:row.room_status||row.status};
+}
+async function openSignal(session){
+ const proto='call-bearer.'+session.access_token;
+ const scheme=location.protocol==='https:'?'wss':'ws';
+ ws=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
+ ws.onopen=()=>status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');
+ ws.onerror=()=>status('اتصال ارتباطی برقرار نشد. لطفاً اینترنت و دسترسی مرورگر به میکروفون/دوربین را بررسی کنید.','err');
+ ws.onclose=()=>{if(joined)status('ارتباط با اتاق قطع شد.','err')};
+ ws.onmessage=async e=>{
+   let m;try{m=JSON.parse(e.data)}catch{return}
+   if(m.type==='joined'){say(mode==='consultant'?'مشاور · اتاق '+room.room_key:'مراجعه‌کننده · اتاق '+room.room_key);status(m.peers?.length?'طرف مقابل در اتاق است؛ در حال اتصال...':'در اتاق هستید؛ منتظر ورود طرف مقابل...','ok');for(const p of (m.peers||[])){await makeOffer(p.id)}}
+   else if(m.type==='offer'){await handleOffer(m)}
+   else if(m.type==='answer'){await handleAnswer(m)}
+   else if(m.type==='ice'){await handleIce(m)}
+   else if(m.type==='peer_left'){const pc=peers.get(m.peer_id);if(pc){pc.close();peers.delete(m.peer_id)};status('طرف مقابل از اتاق خارج شد.','err')}
+ };
+}
+async function getMedia(){
+ if(localStream)return localStream;
+ try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:true})}
+ catch(e){try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false})}catch(e2){throw new Error('دسترسی به میکروفون/دوربین داده نشد. در تنظیمات مرورگر اجازه Microphone را فعال کنید.')}}
+ $('local').srcObject=localStream;
+ $('mic').disabled=false;$('cam').disabled=false;$('hangup').disabled=false;
+ return localStream;
+}
+function makePc(id){
+ let pc=peers.get(id);if(pc)return pc;
+ pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);
+ for(const track of localStream.getTracks())pc.addTrack(track,localStream);
+ pc.onicecandidate=e=>{if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'ice',to:id,candidate:e.candidate}))};
+ pc.ontrack=e=>{if(e.streams?.[0])$('remote').srcObject=e.streams[0]};
+ pc.onconnectionstatechange=()=>{if(['connected'].includes(pc.connectionState))status('تماس صوتی/تصویری برقرار شد.','ok');if(['failed','disconnected'].includes(pc.connectionState))status('اتصال تماس ناپایدار یا قطع شده است.','err')};
+ return pc;
+}
+async function makeOffer(id){const pc=makePc(id);const offer=await pc.createOffer();await pc.setLocalDescription(offer);ws.send(JSON.stringify({type:'offer',to:id,sdp:offer}))}
+async function handleOffer(m){const pc=makePc(m.from);await pc.setRemoteDescription(m.sdp);const answer=await pc.createAnswer();await pc.setLocalDescription(answer);ws.send(JSON.stringify({type:'answer',to:m.from,sdp:answer}))}
+async function handleAnswer(m){const pc=peers.get(m.from);if(pc)await pc.setRemoteDescription(m.sdp)}
+async function handleIce(m){const pc=peers.get(m.from);if(pc){try{await pc.addIceCandidate(m.candidate)}catch{}}}
+async function join(){
+ if(joined)return;
+ $('join').disabled=true;
+ try{
+  const session=await getSession();
+  status('در حال ساخت اتاق امن تماس...');
+  room=await prepareRoom();
+  await getMedia();
+  await openSignal(session);
+  joined=true;
+ }catch(e){$('join').disabled=false;status('❌ '+(e.message||'ورود به تماس انجام نشد.'),'err')}
+}
+function end(){
+ for(const pc of peers.values())pc.close();peers.clear();
+ if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
+ if(ws){try{ws.send(JSON.stringify({type:'hangup'}))}catch{};ws.close();ws=null}
+ $('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
+ status('تماس پایان یافت.','err');
+}
+$('join').onclick=join;$('hangup').onclick=end;
+$('mic').onclick=()=>{const t=localStream?.getAudioTracks?.()[0];if(t){t.enabled=!t.enabled;$('mic').textContent=t.enabled?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
+$('cam').onclick=()=>{const t=localStream?.getVideoTracks?.()[0];if(t){t.enabled=!t.enabled;$('cam').textContent=t.enabled?'📷 دوربین':'🚫 دوربین خاموش'}};
+window.addEventListener('beforeunload',end);
+status('برای شروع، دکمه «ورود به تماس» را بزنید.');
+</script>
+</body>
+</html>
