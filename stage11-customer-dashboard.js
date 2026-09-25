@@ -18,7 +18,7 @@ wait(async()=>{
    const payment=document.getElementById('payment');payment?.parentNode?.insertBefore(section,payment);
  }
  const nav=document.querySelector('.links');
- if(nav&&!document.getElementById('myAppointmentsNav')){const a=document.createElement('a');a.id='myAppointmentsNav';a.href='#myAppointments';a.textContent='نوبت‌های من';a.style.display='none';nav.insertBefore(a,account)}
+ if(nav&&!document.getElementById('myAppointmentsNav')){const a=document.createElement('a');a.id='myAppointmentsNav';a.href='#myAppointments';a.textContent='📅 نوبت‌های من';a.className='btn';a.style.setProperty('display','none','important');nav.insertBefore(a,account)}
  async function removeAppointment(appointmentId,orderId){
    if(!appointmentId)return;
    if(!confirm('آیا از حذف این نوبت قبل از پرداخت مطمئن هستید؟'))return;
@@ -32,7 +32,7 @@ wait(async()=>{
  async function load(){
    const {data:{user}}=await db.auth.getUser();
    if(!user){section.classList.add('hidden');const n=document.getElementById('myAppointmentsNav');if(n)n.style.display='none';return}
-   section.classList.remove('hidden');const n=document.getElementById('myAppointmentsNav');if(n)n.style.display='inline';
+   section.classList.remove('hidden');const n=document.getElementById('myAppointmentsNav');if(n)n.style.setProperty('display','inline-block','important');
    const host=document.getElementById('myAppointmentsList');
    host.innerHTML='<div class="muted">در حال دریافت نوبت‌های شما…</div>';
    const r=await db.from('appointments').select('id,scheduled_at,status,payment_status,amount,consultant_id,service_id,booking_order_id').eq('user_id',user.id).order('scheduled_at',{ascending:false}).limit(30);
