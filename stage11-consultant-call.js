@@ -45,6 +45,14 @@ wait(async()=>{
    }else if(ended){slot.innerHTML='<div class="muted" style="margin-top:8px">⛔ زمان تماس این نوبت به پایان رسیده است.</div>';}
   });
  };
- const {data:{user}}=await db.auth.getUser();if(!user)return;render();const timer=setInterval(render,1000);db.auth.onAuthStateChange(()=>setTimeout(render,250));window.addEventListener('beforeunload',()=>clearInterval(timer));
+ const {data:{user}}=await db.auth.getUser();if(!user)return;
+render();
+const timer=setInterval(render,1000);
+db.auth.onAuthStateChange(()=>setTimeout(render,250));
+window.addEventListener('appointments:refresh',()=>setTimeout(render,100));
+const host=document.getElementById('myAppointmentsList');
+const observer=host?new MutationObserver(()=>setTimeout(render,50)):null;
+observer?.observe(host,{childList:true,subtree:true});
+window.addEventListener('beforeunload',()=>{clearInterval(timer);observer?.disconnect()});
 });
 })();
