@@ -15,7 +15,7 @@ wait(async()=>{
  let section=document.getElementById('myAppointments');
  if(!section){
    section=document.createElement('section');section.id='myAppointments';section.className='section hidden';
-   section.innerHTML='<div class="c"><div class="head"><h2>📅 نوبت‌های من</h2><p class="muted">نوبت‌ها، وضعیت پرداخت و زمان مشاوره شما در یکجا.</p><div class="stage11-appt-filter"><button type="button" id="myAppointmentsToday" class="active">📅 نوبت‌های امروز</button><button type="button" id="myAppointmentsAll">📋 همه نوبت‌ها</button><span id="myAppointmentsCount" class="count"></span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><button type="button" id="enableCallNotifications" class="btn">🔔 فعال‌سازی آلارم تماس</button><span id="callNotificationState" class="muted">برای اطلاع فوری از فعال شدن تماس، اعلان گوشی را فعال کنید.</span></div></div><div class="panel"><div id="myAppointmentsList" class="grid"></div></div></div>'
+   section.innerHTML='<div class="c"><div class="head"><h2>📅 نوبت‌های من</h2><p class="muted">نوبت‌ها، وضعیت پرداخت و زمان مشاوره شما در یکجا.</p><div class="stage11-appt-filter"><button type="button" id="myAppointmentsToday" class="active">📅 نوبت‌های امروز</button><button type="button" id="myAppointmentsAll">📋 همه نوبت‌ها</button><select id="myAppointmentsConsultant" style="width:auto;min-width:190px;margin:0"><option value="">همه مشاوران</option></select><span id="myAppointmentsCount" class="count"></span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><button type="button" id="enableCallNotifications" class="btn">🔔 فعال‌سازی آلارم تماس</button><span id="callNotificationState" class="muted">برای اطلاع فوری از فعال شدن تماس، اعلان گوشی را فعال کنید.</span></div></div><div class="panel"><div id="myAppointmentsList" class="grid"></div></div></div>'
    const payment=document.getElementById('payment');payment?.parentNode?.insertBefore(section,payment);
  }
  const nav=document.querySelector('.links');
@@ -57,7 +57,7 @@ async function removeAppointment(appointmentId,orderId){
  }
  let loading=false;
  const refresh=()=>setTimeout(()=>load(),50);
- document.getElementById('myAppointmentsToday')?.addEventListener('click',()=>{appointmentView='today';renderAppointmentRows()});document.getElementById('myAppointmentsAll')?.addEventListener('click',()=>{appointmentView='all';renderAppointmentRows()}); account.addEventListener('click',()=>setTimeout(load,100));
+ document.getElementById('myAppointmentsToday')?.addEventListener('click',()=>{appointmentView='today';renderAppointmentRows()});document.getElementById('myAppointmentsAll')?.addEventListener('click',()=>{appointmentView='all';renderAppointmentRows()});document.getElementById('myAppointmentsConsultant')?.addEventListener('change',e=>{appointmentConsultant=e.target.value||'';renderAppointmentRows()}); account.addEventListener('click',()=>setTimeout(load,100));
  window.addEventListener('focus',refresh);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
  window.addEventListener('appointments:refresh',refresh);
