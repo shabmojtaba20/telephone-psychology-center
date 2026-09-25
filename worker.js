@@ -118,6 +118,26 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
+    if (path.startsWith("/api/call-signal/") && request.headers.get("Upgrade") === "websocket") {
+      try {
+        const roomKey = decodeURIComponent(path.slice("/api/call-signal/".length));
+        if (!roomKey) return json({error:"کلید اتاق تماس ارسال نشده است."},400);
+        const authz = await authorizeCallRoom(request, env, roomKey);
+        if (!authz.ok) return json({error:authz.error},authz.status);
+        const id = env.CALL_SIGNALING.idFromName(roomKey);
+        const stub = env.CALL_SIGNALING.get(id);
+        const headers = new Headers(request.headers);
+        headers.set("X-Call-User-Id", authz.userId);
+        headers.set("X-Call-Role", authz.role);
+        return stub.fetch(new Request(new URL("/signal", request.url), {
+          method: "GET",
+          headers
+        }));
+      } catch (e) {
+        return json({error:e?.message||"اتصال سیگنال تماس برقرار نشد."},500);
+      }
+    }
+
     if (path === "/api/consultant-call" && request.method === "POST") {
       try {
         const auth = request.headers.get("Authorization") || "";
