@@ -49,8 +49,30 @@ export default {
 
     if (path === "/api/twilio/voice-status" && request.method === "POST") {
       try {
-        const body=await request.formData(), sessionId=url.searchParams.get("session_id");
+        const twilioAuthToken = env.TWILIO_AUTH_TOKEN;
+        if (!twilioAuthToken) return new Response("",{status:500});
+        const signature = request.headers.get("X-Twilio-Signature") || "";
+        if (!signature) return new Response("",{status:403});
+
+        const body = await request.formData();
+        const sessionId = url.searchParams.get("session_id");
         if(!sessionId) return new Response("",{status:204});
+
+        const params = [...body.entries()].sort(([a],[b])=>a.localeCompare(b));
+        const data = url.toString() + params.map(([key,value])=>String(key)+String(value)).join("");
+        const bytes = new TextEncoder().encode(data);
+        const keyBytes = new TextEncoder().encode(twilioAuthToken);
+        const cryptoKey = await crypto.subtle.importKey("raw",keyBytes,{name:"HMAC",hash:"SHA-1"},false,["sign"]);
+        const digest = await crypto.subtle.sign("HMAC",cryptoKey,bytes);
+        let binary="";
+        for(const byte of new Uint8Array(digest)) binary += String.fromCharCode(byte);
+        const expected = btoa(binary);
+        if(signature.length !== expected.length) return new Response("",{status:403});
+        const a=new TextEncoder().encode(signature), b=new TextEncoder().encode(expected);
+        let diff=0;
+        for(let i=0;i<a.length;i++) diff |= a[i]^b[i];
+        if(diff!==0) return new Response("",{status:403});
+
         const status=String(body.get("CallStatus")||""), duration=Number(body.get("CallDuration")||0);
         if(!env.SUPABASE_SERVICE_ROLE_KEY) return new Response("",{status:500});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
@@ -98,30 +120,7 @@ export default {
         .footer-panel-links a{display:inline-flex;align-items:center;justify-content:center;background:#fff;color:#344054!important;text-decoration:none;border:1px solid #d0d5dd;border-radius:8px;padding:6px 11px;font-size:12px;min-width:92px}.footer-panel-links a[href="/admin.html"]{background:#2563eb;color:#fff!important;border-color:#2563eb}
         @media(max-width:700px){header .nav{align-items:flex-start;flex-direction:column;padding:10px 0}header .links{width:100%;justify-content:flex-start;gap:8px}header .links a{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:12px;padding:6px 9px}header .links #accountBtn{display:inline-flex!important;font-size:12px;padding:6px 9px}}
       </style><script>
-      (()=>{
-        const run=()=>{
-          const nav=document.querySelector('header nav.links');
-          if(!nav)return;
-          const targets=[
-            ['/admin.html','پنل مدیریت'],
-            ['/admin-v5.html','پنل مالی'],
-            ['/consultant-panel.html','پنل مشاور']
-          ];
-          for(const [href,label] of targets){
-            let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});
-            if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}
-            link.textContent=label;
-            link.classList.add('btn','role-panel-link');
-          }
-          const footer=document.querySelector('footer .c');
-          if(footer&&!footer.querySelector('.footer-panel-links')){
-            const group=document.createElement('nav');group.className='footer-panel-links';group.setAttribute('aria-label','دسترسی به پنل‌ها');
-            for(const [href,label] of targets){const a=document.createElement('a');a.href=href;a.textContent=label;group.appendChild(a);}
-            footer.appendChild(group);
-          }
-        };
-        if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
-      })();
+      (()=>{const run=()=>{const nav=document.querySelector('header nav.links');if(!nav)return;const targets=[['/admin.html','پنل مدیریت'],['/admin-v5.html','پنل مالی'],['/consultant-panel.html','پنل مشاور']];for(const [href,label] of targets){let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}link.textContent=label;link.classList.add('btn','role-panel-link');}const footer=document.querySelector('footer .c');if(footer&&!footer.querySelector('.footer-panel-links')){const group=document.createElement('nav');group.className='footer-panel-links';group.setAttribute('aria-label','دسترسی به پنل‌ها');for(const [href,label] of targets){const a=document.createElement('a');a.href=href;a.textContent=label;group.appendChild(a);}footer.appendChild(group);}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
       </script>`;
       if (html.includes("</body>")) html = html.replace("</body>", navigationFix + "</body>");
       else html += navigationFix;
