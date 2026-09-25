@@ -25,13 +25,12 @@ wait(async()=>{
      if(btn.disabled)return;
      btn.disabled=true;btn.textContent='در حال آماده‌سازی تماس…';
      try{
-      const {data,error}=await db.rpc('request_my_consultant_direct_call',{p_appointment_id:id});
-      if(error)throw error;
-      const phone=typeof data==='string'?data:data?.phone;
-      if(!phone)throw new Error('شماره تماس مشاور در حساب مرکز ثبت نشده است.');
-      const tel=String(phone).replace(/[^+\d]/g,'');if(!tel)throw new Error('شماره تماس مشاور معتبر نیست.');
-      btn.textContent='📞 تماس برقرار شد';endBtn.style.display='inline-block';msg.textContent='جلسه تماس فعال است. پس از پایان مکالمه، «پایان جلسه» را بزنید.';
-      window.location.href='tel:'+tel;
+      const {data:{session}}=await db.auth.getSession();
+      if(!session?.access_token)throw new Error('جلسه ورود شما منقضی شده است. دوباره وارد شوید.');
+      const resp=await fetch('/api/consultant-call',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({appointment_id:id})});
+      const data=await resp.json().catch(()=>({}));
+      if(!resp.ok)throw new Error(data.error||'برقراری تماس امکان‌پذیر نشد.');
+      btn.textContent='📞 تماس در حال برقراری است';endBtn.style.display='inline-block';msg.textContent='سامانه تماس را برقرار می‌کند؛ تلفن شما و مشاور به‌صورت خودکار متصل می‌شوند.';
      }catch(err){msg.textContent='❌ '+(err.message||'برقراری تماس امکان‌پذیر نشد.');btn.disabled=false;btn.textContent='📞 تماس با مشاور';}
     });
     endBtn.addEventListener('click',async()=>{
