@@ -53,7 +53,12 @@ wait(async()=>{
    }).join('');
    host.querySelectorAll('[data-delete-appointment]').forEach(btn=>btn.addEventListener('click',()=>removeAppointment(btn.dataset.deleteAppointment)));
  }
- let loading=false;\n const refresh=()=>setTimeout(()=>load(),50);\n account.addEventListener('click',()=>setTimeout(load,100));\n window.addEventListener('focus',refresh);\n document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});\n window.addEventListener('appointments:refresh',refresh);
+ let loading=false;
+ const refresh=()=>setTimeout(()=>load(),50);
+ account.addEventListener('click',()=>setTimeout(load,100));
+ window.addEventListener('focus',refresh);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+ window.addEventListener('appointments:refresh',refresh);
  document.getElementById('bookingLogin')?.addEventListener('click',()=>setTimeout(load,100));
  db.auth.onAuthStateChange(()=>setTimeout(load,150));
  await load();
