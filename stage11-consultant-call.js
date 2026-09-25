@@ -15,13 +15,13 @@ wait(async()=>{
    const id=card.dataset.appointmentId,start=new Date(card.dataset.scheduledAt||'').getTime();
    const status=card.dataset.appointmentStatus,pay=card.dataset.paymentStatus,now=Date.now();
    const eligible=status==='confirmed'&&pay==='paid';
-   const active=eligible&&now>=start&&now<start+60*60*1000;
+   const active=eligible&&now>=start-15*60*1000&&now<start+60*60*1000;
    if(active&&!notified.has(id)&&window.callNotifications?.isEnabled?.()){notified.add(id);window.callNotifications.notify('📞 تماس با مشاور فعال شد','زمان نوبت شما رسیده است. برای ورود به تماس با مشاور، دکمه «تماس با مشاور» را بزنید.',location.origin+'/#myAppointments');try{navigator.vibrate?.([400,120,400,120,700])}catch{}}
-   const future=eligible&&now<start;
+   const future=eligible&&now<start-15*60*1000;
    const ended=status==='completed'||(eligible&&now>=start+60*60*1000);
    slot.innerHTML='';
    if(eligible&&!ended){
-    slot.innerHTML=`<div style="margin-top:12px;padding:10px;border-radius:10px;background:#f5faf7;border:1px solid #b7dec5"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-consultant-call="${esc(id)}" ${active?'':'disabled'} style="background:${active?'#16803c':'#94a3b8'};color:#fff">📞 تماس با مشاور</button><button class="btn" data-consultant-end="${esc(id)}" style="display:none;background:#b42318;color:#fff">⏹ پایان جلسه</button><span data-call-countdown class="muted">${future?'🔒 تماس در زمان شروع نوبت فعال می‌شود.':''}</span></div><div data-call-status class="muted" style="margin-top:7px"></div></div>`;
+    slot.innerHTML=`<div style="margin-top:12px;padding:10px;border-radius:10px;background:#f5faf7;border:1px solid #b7dec5"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-consultant-call="${esc(id)}" ${active?'':'disabled'} style="background:${active?'#16803c':'#94a3b8'};color:#fff">📞 تماس با مشاور</button><button class="btn" data-consultant-end="${esc(id)}" style="display:none;background:#b42318;color:#fff">⏹ پایان جلسه</button><span data-call-countdown class="muted">${future?'🔒 تماس از ۱۵ دقیقه قبل از شروع نوبت فعال می‌شود.':''}</span></div><div data-call-status class="muted" style="margin-top:7px"></div></div>`;
     const btn=slot.querySelector('[data-consultant-call]'),endBtn=slot.querySelector('[data-consultant-end]'),msg=slot.querySelector('[data-call-status]'),count=slot.querySelector('[data-call-countdown]');
     if(future){const d=Math.max(0,start-now),m=Math.floor(d/60000),s=Math.floor((d%60000)/1000);count.textContent=`🔒 تماس در زمان شروع نوبت فعال می‌شود — ${m} دقیقه و ${s} ثانیه مانده`;}
     btn.addEventListener('click',async()=>{
