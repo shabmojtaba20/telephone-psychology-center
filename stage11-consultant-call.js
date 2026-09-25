@@ -9,12 +9,25 @@ wait(async()=>{
  const db=createClient(SB_URL,SB_KEY);
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let notified=new Set();
- const render=()=>{
+ let dbAppointments=new Map();
+ let lastFetch=0;
+ async function refreshAppointments(){
+  if(Date.now()-lastFetch<2500)return;
+  lastFetch=Date.now();
+  const {data:{user}}=await db.auth.getUser();
+  if(!user)return;
+  const {data,error}=await db.from('appointments').select('id,scheduled_at,status,payment_status').eq('user_id',user.id).order('scheduled_at',{ascending:false}).range(0,99);
+  if(!error)dbAppointments=new Map((data||[]).map(x=>[String(x.id),x]));
+ }
+ const render=async()=>{
+  await refreshAppointments();
   document.querySelectorAll('#myAppointmentsList [data-appointment-id]').forEach(card=>{
    const slot=card.querySelector('.stage11-call-slot');if(!slot)return;
-   const id=card.dataset.appointmentId,start=new Date(card.dataset.scheduledAt||'').getTime();
-   const status=card.dataset.appointmentStatus,pay=card.dataset.paymentStatus,now=Date.now();
-   const eligible=status==='confirmed'&&pay==='paid';
+   const id=String(card.dataset.appointmentId||''),dbRow=dbAppointments.get(String(card.dataset.appointmentId||''));
+   const scheduled=dbRow?.scheduled_at||card.dataset.scheduledAt||'';
+   const start=new Date(scheduled).getTime();
+   const status=dbRow?.status||card.dataset.appointmentStatus,pay=dbRow?.payment_status||card.dataset.paymentStatus,now=Date.now();
+   const eligible=status==='confirmed'&&pay==='paid'&&Number.isFinite(start);
    const active=eligible&&now>=start-15*60*1000&&now<start+60*60*1000;
    if(active&&!notified.has(id)&&window.callNotifications?.isEnabled?.()){notified.add(id);window.callNotifications.notify('📞 تماس با مشاور فعال شد','زمان نوبت شما رسیده است. برای ورود به تماس با مشاور، دکمه «تماس با مشاور» را بزنید.',location.origin+'/#myAppointments');try{navigator.vibrate?.([400,120,400,120,700])}catch{}}
    const future=eligible&&now<start-15*60*1000;
