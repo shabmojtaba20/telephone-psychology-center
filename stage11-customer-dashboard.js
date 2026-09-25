@@ -9,8 +9,8 @@ wait(async()=>{
  if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
  const account=document.getElementById('accountBtn');
  if(!account)return;
- const db=window.supabase?.createClient?window.supabase.createClient(SB_URL,SB_KEY):null;
- if(!db)return;
+ const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+ const db=createClient(SB_URL,SB_KEY);
  let section=document.getElementById('myAppointments');
  if(!section){
    section=document.createElement('section');section.id='myAppointments';section.className='section hidden';
