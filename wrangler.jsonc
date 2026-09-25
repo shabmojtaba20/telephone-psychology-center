@@ -8,5 +8,19 @@
     "binding": "ASSETS",
     "html_handling": "drop-trailing-slash",
     "not_found_handling": "404-page"
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CALL_SIGNALING",
+        "class_name": "CallSignalingRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "call-signaling-v1",
+      "new_sqlite_classes": ["CallSignalingRoom"]
+    }
+  ]
 }
