@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const stage11AppointmentFilterStyle=document.createElement('style');stage11AppointmentFilterStyle.textContent='.stage11-appt-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.stage11-appt-filter button{border:1px solid #d0d5dd;background:#fff;color:#344054;border-radius:12px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer}.stage11-appt-filter button.active{background:#4f46e5;color:#fff;border-color:#4f46e5}.stage11-appt-filter .count{font-size:12px;color:#667085;margin-right:auto}';document.head.appendChild(stage11AppointmentFilterStyle);
+const stage11AppointmentFilterStyle=document.createElement('style');stage11AppointmentFilterStyle.textContent='.stage11-appt-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.stage11-appt-filter button{flex:0 0 auto;white-space:nowrap;border:1px solid #d0d5dd;background:#fff;color:#344054;border-radius:12px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer}.stage11-appt-filter button.active{background:#4f46e5;color:#fff;border-color:#4f46e5}.stage11-appt-filter .count{font-size:12px;color:#667085;margin-right:auto}';document.head.appendChild(stage11AppointmentFilterStyle);
 const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
 const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 const wait=fn=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',fn,{once:true}):fn();
