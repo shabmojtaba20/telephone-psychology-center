@@ -3,6 +3,67 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
+    if (path === "/api/consultant-call" && request.method === "POST") {
+      try {
+        const auth = request.headers.get("Authorization") || "";
+        if (!auth.startsWith("Bearer ")) return new Response(JSON.stringify({error:"ابتدا وارد حساب کاربری شوید."}),{status:401,headers:{"Content-Type":"application/json"}});
+        const body = await request.json().catch(()=>({}));
+        const appointmentId = String(body.appointment_id || "").trim();
+        if (!appointmentId) return new Response(JSON.stringify({error:"شناسه نوبت ارسال نشده است."}),{status:400,headers:{"Content-Type":"application/json"}});
+
+        const sbUrl = env.SUPABASE_URL || "https://aserkyiwwyggtixckjsv.supabase.co";
+        const sbKey = env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+        const rpc = await fetch(sbUrl + "/rest/v1/rpc/prepare_my_consultant_twilio_call", {
+          method:"POST",headers:{"apikey":sbKey,"Authorization":auth,"Content-Type":"application/json"},
+          body:JSON.stringify({p_appointment_id:appointmentId})
+        });
+        const prepared = await rpc.json().catch(()=>null);
+        if (!rpc.ok) return new Response(JSON.stringify({error:prepared?.message || prepared?.error || "این نوبت برای تماس قابل استفاده نیست."}),{status:400,headers:{"Content-Type":"application/json"}});
+
+        const account = env.TWILIO_ACCOUNT_SID, from = env.TWILIO_FROM_NUMBER;
+        const secret = env.TWILIO_API_SECRET || env.TWILIO_AUTH_TOKEN;
+        const user = env.TWILIO_API_KEY || account;
+        if (!account || !from || !secret) return new Response(JSON.stringify({error:"تنظیمات Twilio روی Worker کامل نشده است."}),{status:500,headers:{"Content-Type":"application/json"}});
+
+        const callback = new URL("/api/twilio/voice-status", url);
+        callback.searchParams.set("session_id", prepared.session_id);
+        const consultant = String(prepared.consultant_phone).replace(/[^+\d]/g,"");
+        const twiml = `<Response><Dial timeout="25"><Number>${consultant}</Number></Dial></Response>`;
+        const form = new URLSearchParams({To:String(prepared.customer_phone),From:String(from),Twiml:twiml,StatusCallback:callback.toString(),StatusCallbackMethod:"POST",StatusCallbackEvent:"initiated ringing answered completed"});
+        const callResp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(account)}/Calls.json`,{
+          method:"POST",headers:{"Authorization":"Basic "+btoa(user+":"+secret),"Content-Type":"application/x-www-form-urlencoded"},body:form
+        });
+        const callData=await callResp.json().catch(()=>null);
+        if(!callResp.ok) return new Response(JSON.stringify({error:callData?.message||"برقراری تماس از طریق Twilio انجام نشد.",code:callData?.code||null}),{status:502,headers:{"Content-Type":"application/json"}});
+
+        const attach=await fetch(sbUrl+"/rest/v1/rpc/attach_my_twilio_call_sid",{
+          method:"POST",headers:{"apikey":sbKey,"Authorization":auth,"Content-Type":"application/json"},
+          body:JSON.stringify({p_session_id:prepared.session_id,p_twilio_call_sid:callData.sid})
+        });
+        if(!attach.ok) return new Response(JSON.stringify({error:"تماس ایجاد شد ولی ثبت شناسه تماس انجام نشد.",call_sid:callData.sid}),{status:502,headers:{"Content-Type":"application/json"}});
+        return new Response(JSON.stringify({ok:true,session_id:prepared.session_id,call_sid:callData.sid,status:callData.status||"queued"}),{headers:{"Content-Type":"application/json"}});
+      } catch(e) {
+        return new Response(JSON.stringify({error:e?.message||"خطای غیرمنتظره در برقراری تماس."}),{status:500,headers:{"Content-Type":"application/json"}});
+      }
+    }
+
+    if (path === "/api/twilio/voice-status" && request.method === "POST") {
+      try {
+        const body=await request.formData(), sessionId=url.searchParams.get("session_id");
+        if(!sessionId) return new Response("",{status:204});
+        const status=String(body.get("CallStatus")||""), duration=Number(body.get("CallDuration")||0);
+        if(!env.SUPABASE_SERVICE_ROLE_KEY) return new Response("",{status:500});
+        const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+        const finalStatus=["completed","failed","busy","no-answer","canceled"].includes(status);
+        const patch={status:status==="completed"?"completed":finalStatus?"failed":"calling",duration_seconds:duration||null,updated_at:new Date().toISOString()};
+        if(finalStatus)patch.ended_at=new Date().toISOString();
+        await fetch(sbUrl+"/rest/v1/consultant_call_sessions?id=eq."+encodeURIComponent(sessionId),{
+          method:"PATCH",headers:{"apikey":env.SUPABASE_SERVICE_ROLE_KEY,"Authorization":"Bearer "+env.SUPABASE_SERVICE_ROLE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(patch)
+        });
+        return new Response("",{status:204});
+      } catch { return new Response("",{status:204}); }
+    }
+
     if (path === "/admin-professional.html") {
       const response = await env.ASSETS.fetch(new Request(new URL("/admin-professional.html", url), request));
       const headers = new Headers(response.headers);
