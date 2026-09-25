@@ -41,7 +41,7 @@ async function removeAppointment(appointmentId,orderId){
    section.classList.remove('hidden');const n=document.getElementById('myAppointmentsNav');if(n)n.style.setProperty('display','inline-block','important');
    const host=document.getElementById('myAppointmentsList');
    host.innerHTML='<div class="muted">در حال دریافت نوبت‌های شما…</div>';
-   const r=await db.from('appointments').select('id,scheduled_at,status,payment_status,amount,consultant_id,service_id,booking_order_id').eq('user_id',user.id).order('scheduled_at',{ascending:false}).range(0,99);
+   const r=await db.from('appointments').select('id,scheduled_at,status,payment_status,amount,consultant_id,service_id,booking_order_id').eq('user_id',user.id).order('scheduled_at',{ascending:false}).range(0,999);
    if(r.error){host.innerHTML='<div class="msg err">دریافت نوبت‌ها انجام نشد. لطفاً دوباره تلاش کنید.</div>';return}
    const rows=Array.isArray(r.data)?r.data:[];
    appointmentRows=rows;
