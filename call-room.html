@@ -41,7 +41,7 @@ const db=createClient(SB_URL,SB_KEY);
 const $=id=>document.getElementById(id);
 const appointmentId=new URLSearchParams(location.search).get('appointment_id');
 const mode=new URLSearchParams(location.search).get('role')||'client';
-let room=null,ws=null,localStream=null,joined=false;
+let room=null,ws=null,localStream=null,joined=false,closing=false,reconnectTimer=null,reconnectAttempts=0,session=null;
 const peers=new Map();
 const rtcConfig={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
 function status(t,kind=''){ $('status').className='status '+kind; $('status').textContent=t; }
@@ -63,7 +63,7 @@ async function openSignal(session){
  ws=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
  ws.onopen=()=>status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');
  ws.onerror=()=>status('اتصال ارتباطی برقرار نشد. لطفاً اینترنت و دسترسی مرورگر به میکروفون/دوربین را بررسی کنید.','err');
- ws.onclose=()=>{if(joined)status('ارتباط با اتاق قطع شد.','err')};
+ ws.onclose=()=>{if(joined&&!closing)reconnectSignal()};
  ws.onmessage=async e=>{
    let m;try{m=JSON.parse(e.data)}catch{return}
    if(m.type==='joined'){say(mode==='consultant'?'مشاور · اتاق '+room.room_key:'مراجعه‌کننده · اتاق '+room.room_key);status(m.peers?.length?'طرف مقابل در اتاق است؛ در حال اتصال...':'در اتاق هستید؛ منتظر ورود طرف مقابل...','ok');for(const p of (m.peers||[])){await makeOffer(p.id)}}
@@ -81,13 +81,31 @@ async function getMedia(){
  $('mic').disabled=false;$('cam').disabled=false;$('hangup').disabled=false;
  return localStream;
 }
+function clearPeer(id){const pc=peers.get(id);if(pc){try{pc.close()}catch{};peers.delete(id)}}
+function reconnectPeer(id){
+ const pc=peers.get(id); if(!pc||!ws||ws.readyState!==1)return;
+ try{pc.restartIce?.()}catch{}
+ makeOffer(id).catch(()=>{});
+}
+async function reconnectSignal(){
+ if(closing||!session||!room)return;
+ if(reconnectTimer)return;
+ reconnectAttempts=Math.min(reconnectAttempts+1,6);
+ const delay=Math.min(1000*Math.pow(2,reconnectAttempts-1),15000);
+ status('ارتباط قطع شد؛ تلاش مجدد خودکار تا '+Math.ceil(delay/1000)+' ثانیه دیگر...','err');
+ reconnectTimer=setTimeout(async()=>{
+   reconnectTimer=null;
+   if(closing)return;
+   try{await openSignal(session);reconnectAttempts=0;status('اتصال مجدد برقرار شد؛ در حال بازیابی تماس...','ok');for(const id of [...peers.keys()])reconnectPeer(id)}catch{reconnectSignal()}
+ },delay);
+}
 function makePc(id){
  let pc=peers.get(id);if(pc)return pc;
  pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);
  for(const track of localStream.getTracks())pc.addTrack(track,localStream);
  pc.onicecandidate=e=>{if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'ice',to:id,candidate:e.candidate}))};
  pc.ontrack=e=>{if(e.streams?.[0])$('remote').srcObject=e.streams[0]};
- pc.onconnectionstatechange=()=>{if(['connected'].includes(pc.connectionState))status('تماس صوتی/تصویری برقرار شد.','ok');if(['failed','disconnected'].includes(pc.connectionState))status('اتصال تماس ناپایدار یا قطع شده است.','err')};
+ pc.onconnectionstatechange=()=>{if(['connected'].includes(pc.connectionState))status('تماس صوتی/تصویری برقرار شد.','ok');if(['failed','disconnected'].includes(pc.connectionState)){status('تماس قطع یا ناپایدار شد؛ تلاش برای برقراری مجدد...','err');reconnectPeer(id)}};
  return pc;
 }
 async function makeOffer(id){const pc=makePc(id);const offer=await pc.createOffer();await pc.setLocalDescription(offer);ws.send(JSON.stringify({type:'offer',to:id,sdp:offer}))}
@@ -98,7 +116,7 @@ async function join(){
  if(joined)return;
  $('join').disabled=true;
  try{
-  const session=await getSession();
+  session=await getSession();
   status('در حال ساخت اتاق امن تماس...');
   room=await prepareRoom();
   await getMedia();
@@ -107,16 +125,19 @@ async function join(){
  }catch(e){$('join').disabled=false;status('❌ '+(e.message||'ورود به تماس انجام نشد.'),'err')}
 }
 function end(){
+ closing=true;if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}
  for(const pc of peers.values())pc.close();peers.clear();
  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
  if(ws){try{ws.send(JSON.stringify({type:'hangup'}))}catch{};ws.close();ws=null}
  $('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
- status('تماس پایان یافت.','err');
+ joined=false;status('تماس پایان یافت. برای برقراری دوباره می‌توانید دوباره «ورود به تماس» را بزنید.','err');$('join').disabled=false;$('join').textContent='🎙️ ورود مجدد به تماس';
 }
 $('join').onclick=join;$('hangup').onclick=end;
 $('mic').onclick=()=>{const t=localStream?.getAudioTracks?.()[0];if(t){t.enabled=!t.enabled;$('mic').textContent=t.enabled?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
 $('cam').onclick=()=>{const t=localStream?.getVideoTracks?.()[0];if(t){t.enabled=!t.enabled;$('cam').textContent=t.enabled?'📷 دوربین':'🚫 دوربین خاموش'}};
-window.addEventListener('beforeunload',end);
+window.addEventListener('online',()=>{if(joined&&!closing)reconnectSignal()});
+window.addEventListener('offline',()=>{if(joined)status('اینترنت قطع شده است؛ پس از وصل شدن، تماس خودکار بازیابی می‌شود.','err')});
+window.addEventListener('beforeunload',()=>{closing=true;try{ws?.send(JSON.stringify({type:'hangup'}))}catch{}});
 status('برای شروع، دکمه «ورود به تماس» را بزنید.');
 </script>
 </body>
