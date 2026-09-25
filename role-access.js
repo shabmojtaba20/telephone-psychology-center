@@ -31,7 +31,7 @@
       document.querySelectorAll('[data-page]').forEach(el=>{
         if(!allowed.has(el.dataset.page)){el.style.display='none';el.setAttribute('aria-hidden','true');el.dataset.roleHidden='1';}
       });
-      document.querySelectorAll('.group').forEach(group=>{
+      document.querySelectorAll('[data-permission]').forEach(el=>{\n        if(!permissions.has('*') && !permissions.has(el.dataset.permission)){el.style.display='none';el.setAttribute('aria-hidden','true');el.dataset.roleHidden='1';}\n      });\n      document.querySelectorAll('.group').forEach(group=>{
         const visible=[...group.querySelectorAll('[data-page]')].some(x=>x.dataset.roleHidden!=='1'&&getComputedStyle(x).display!=='none');
         if(!visible)group.style.display='none';
       });
