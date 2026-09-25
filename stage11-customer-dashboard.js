@@ -14,10 +14,13 @@ wait(async()=>{
  let section=document.getElementById('myAppointments');
  if(!section){
    section=document.createElement('section');section.id='myAppointments';section.className='section hidden';
-   section.innerHTML='<div class="c"><div class="head"><h2>📅 نوبت‌های من</h2><p class="muted">نوبت‌ها، وضعیت پرداخت و زمان مشاوره شما در یکجا.</p></div><div class="panel"><div id="myAppointmentsList" class="grid"></div></div></div>';
+   section.innerHTML='<div class="c"><div class="head"><h2>📅 نوبت‌های من</h2><p class="muted">نوبت‌ها، وضعیت پرداخت و زمان مشاوره شما در یکجا.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px"><button type="button" id="enableCallNotifications" class="btn">🔔 فعال‌سازی آلارم تماس</button><span id="callNotificationState" class="muted">برای اطلاع فوری از فعال شدن تماس، اعلان گوشی را فعال کنید.</span></div></div><div class="panel"><div id="myAppointmentsList" class="grid"></div></div></div>'
    const payment=document.getElementById('payment');payment?.parentNode?.insertBefore(section,payment);
  }
  const nav=document.querySelector('.links');
+ const notifBtn=document.getElementById('enableCallNotifications'),notifState=document.getElementById('callNotificationState');
+ const updateNotifState=()=>{if(!notifBtn||!notifState)return;const ok=window.callNotifications?.isEnabled?.()&&('Notification'in window)&&Notification.permission==='granted';notifBtn.textContent=ok?'🔔 آلارم تماس فعال است':'🔔 فعال‌سازی آلارم تماس';notifState.textContent=ok?'هنگام فعال شدن تماس مشاور، اعلان گوشی نمایش داده می‌شود.':'برای اطلاع فوری از فعال شدن تماس، اعلان گوشی را فعال کنید.'};
+ notifBtn?.addEventListener('click',async()=>{const ok=await window.callNotifications?.enable?.();if(ok)updateNotifState()});updateNotifState();
  if(nav&&!document.getElementById('myAppointmentsNav')){const a=document.createElement('a');a.id='myAppointmentsNav';a.href='#myAppointments';a.textContent='📅 نوبت‌های من';a.className='btn';a.style.setProperty('display','none','important');nav.insertBefore(a,account)}
  async function removeAppointment(appointmentId,orderId){
    if(!appointmentId)return;
