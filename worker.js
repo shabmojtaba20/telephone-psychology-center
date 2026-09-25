@@ -1,3 +1,113 @@
+import { DurableObject } from "cloudflare:workers";
+
+const json = (data, status=200, extra={}) => new Response(JSON.stringify(data), {
+  status,
+  headers: {"Content-Type":"application/json; charset=utf-8", ...extra}
+});
+
+async function getBearer(request){
+  const h=request.headers.get("Authorization")||"";
+  return h.startsWith("Bearer ")?h.slice(7).trim():"";
+}
+
+async function getUserId(token, env){
+  if(!token) return null;
+  const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+  const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+  const r=await fetch(sbUrl+"/auth/v1/user",{headers:{"apikey":sbKey,"Authorization":"Bearer "+token}});
+  if(!r.ok)return null;
+  const u=await r.json().catch(()=>null);
+  return u?.id||null;
+}
+
+async function sbSelect(env, path){
+  const key=env.SUPABASE_SERVICE_ROLE_KEY;
+  if(!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+  const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+  const r=await fetch(sbUrl+"/rest/v1/"+path,{headers:{"apikey":key,"Authorization":"Bearer "+key}});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok) throw new Error(data?.message||data?.error||"Supabase request failed");
+  return data;
+}
+
+async function hasPermission(env, token, permission){
+  if(!token)return false;
+  const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+  const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+  const r=await fetch(sbUrl+"/rest/v1/rpc/has_admin_permission",{
+    method:"POST",headers:{"apikey":sbKey,"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify({p_permission:permission})
+  });
+  if(!r.ok)return false;
+  return (await r.json().catch(()=>false))===true;
+}
+
+async function authorizeCallRoom(request, env, roomKey){
+  const token=getBearer(request);
+  const userId=await getUserId(token,env);
+  if(!userId)return {ok:false,status:401,error:"احراز هویت لازم است."};
+  const rooms=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,workshop_id,room_key,status,starts_at,ends_at&room_key=eq."+encodeURIComponent(roomKey)+"&limit=1");
+  const room=rooms?.[0];
+  if(!room)return {ok:false,status:404,error:"اتاق تماس پیدا نشد."};
+  if(["expired","cancelled"].includes(room.status))return {ok:false,status:410,error:"این اتاق تماس منقضی یا لغو شده است."};
+  const now=Date.now(), start=new Date(room.starts_at).getTime()-15*60*1000, end=new Date(room.ends_at).getTime()+30*60*1000;
+  if(!Number.isFinite(start)||!Number.isFinite(end)||now<start||now>end)return {ok:false,status:403,error:"خارج از بازه مجاز ورود به اتاق هستید."};
+
+  let role=null;
+  if(await hasPermission(env,token,"content.manage") || await hasPermission(env,token,"calls.manage")) role="admin";
+
+  if(room.room_type==="private_consultation"){
+    const ap=(await sbSelect(env,"appointments?select=id,user_id,consultant_id,scheduled_at,status&id=eq."+encodeURIComponent(room.appointment_id)+"&limit=1"))?.[0];
+    if(!ap)return {ok:false,status:404,error:"نوبت مرتبط با اتاق پیدا نشد."};
+    if(userId===ap.user_id)role=role||"client";
+    const links=await sbSelect(env,"consultant_user_links?select=consultant_id&user_id=eq."+encodeURIComponent(userId)+"&consultant_id=eq."+encodeURIComponent(ap.consultant_id)+"&limit=1");
+    if(links?.length)role=role||"consultant";
+    if(!role)return {ok:false,status:403,error:"شما عضو این جلسه نیستید."};
+  } else if(room.room_type==="workshop"){
+    const ws=(await sbSelect(env,"workshops?select=id,created_by& id=eq."+encodeURIComponent(room.workshop_id)+"&limit=1".replace(" ","")))?.[0];
+    if(ws?.created_by===userId)role=role||"instructor";
+    if(!role){
+      const regs=await sbSelect(env,"workshop_registrations?select=id&workshop_id=eq."+encodeURIComponent(room.workshop_id)+"&user_id=eq."+encodeURIComponent(userId)+"&payment_status=in.(free,paid)&limit=1");
+      if(regs?.length)role="attendee";
+    }
+    if(!role)return {ok:false,status:403,error:"ثبت‌نام معتبر برای این کارگاه پیدا نشد."};
+  }
+  return {ok:true,room,userId,role,token};
+}
+
+export class CallSignalingRoom extends DurableObject {
+  constructor(ctx, env){super(ctx,env);this.clients=new Map();}
+  fetch(request){
+    if(request.headers.get("Upgrade")!=="websocket")return new Response("WebSocket required",{status:426});
+    const pair=new WebSocketPair(),client=pair[0],server=pair[1];
+    server.accept();
+    const id=crypto.randomUUID();
+    const userId=request.headers.get("X-Call-User-Id")||"";
+    const role=request.headers.get("X-Call-Role")||"participant";
+    this.clients.set(id,{ws:server,userId,role});
+    const peers=[...this.clients.entries()].filter(([k])=>k!==id).map(([k,v])=>({id:k,user_id:v.userId,role:v.role}));
+    server.send(JSON.stringify({type:"joined",self_id:id,peers}));
+    const relay=(payload)=>{
+      if(payload.to){const peer=this.clients.get(String(payload.to));if(peer)peer.ws.send(JSON.stringify({...payload,from:id}));}
+      else for(const [k,peer] of this.clients)if(k!==id)peer.ws.send(JSON.stringify({...payload,from:id}));
+    };
+    server.addEventListener("message",event=>{
+      try{
+        const m=JSON.parse(event.data);
+        if(!["offer","answer","ice","ready","hangup"].includes(m.type))return;
+        relay(m);
+      }catch{}
+    });
+    const leave=()=>{
+      if(!this.clients.has(id))return;
+      this.clients.delete(id);
+      for(const peer of this.clients.values())try{peer.ws.send(JSON.stringify({type:"peer_left",peer_id:id}));}catch{}
+    };
+    server.addEventListener("close",leave);server.addEventListener("error",leave);
+    return new Response(null,{status:101,webSocket:client});
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
