@@ -7,7 +7,10 @@ const json = (data, status=200, extra={}) => new Response(JSON.stringify(data), 
 
 async function getBearer(request){
   const h=request.headers.get("Authorization")||"";
-  return h.startsWith("Bearer ")?h.slice(7).trim():"";
+  if(h.startsWith("Bearer "))return h.slice(7).trim();
+  const p=request.headers.get("Sec-WebSocket-Protocol")||"";
+  const token=p.split(",").map(x=>x.trim()).find(x=>x.startsWith("call-bearer."));
+  return token?token.slice("call-bearer.".length).trim():"";
 }
 
 async function getUserId(token, env){
@@ -64,7 +67,7 @@ async function authorizeCallRoom(request, env, roomKey){
     if(links?.length)role=role||"consultant";
     if(!role)return {ok:false,status:403,error:"شما عضو این جلسه نیستید."};
   } else if(room.room_type==="workshop"){
-    const ws=(await sbSelect(env,"workshops?select=id,created_by& id=eq."+encodeURIComponent(room.workshop_id)+"&limit=1".replace(" ","")))?.[0];
+    const ws=(await sbSelect(env,"workshops?select=id,created_by&id=eq."+encodeURIComponent(room.workshop_id)+"&limit=1"))?.[0];
     if(ws?.created_by===userId)role=role||"instructor";
     if(!role){
       const regs=await sbSelect(env,"workshop_registrations?select=id&workshop_id=eq."+encodeURIComponent(room.workshop_id)+"&user_id=eq."+encodeURIComponent(userId)+"&payment_status=in.(free,paid)&limit=1");
@@ -104,7 +107,9 @@ export class CallSignalingRoom extends DurableObject {
       for(const peer of this.clients.values())try{peer.ws.send(JSON.stringify({type:"peer_left",peer_id:id}));}catch{}
     };
     server.addEventListener("close",leave);server.addEventListener("error",leave);
-    return new Response(null,{status:101,webSocket:client});
+    const protocol=request.headers.get("Sec-WebSocket-Protocol");
+    const headers=protocol?{"Sec-WebSocket-Protocol":protocol}:{};
+    return new Response(null,{status:101,webSocket:client,headers});
   }
 }
 
