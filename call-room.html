@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#312e81">
 <title>اتاق مشاوره آنلاین</title>
-<!-- WebRTC build: 508e3eb1 ICE queue + reconnect stability -->
+<!-- WebRTC build: two-way media + ICE diagnostics + restart stability -->
 <style>
 body{margin:0;background:#f6f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
 .wrap{max-width:900px;margin:auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 8px 30px #1118270d}
@@ -45,8 +45,13 @@ const mode=new URLSearchParams(location.search).get('role')||'client';
 let room=null,ws=null,localStream=null,joined=false,closing=false,reconnectTimer=null,reconnectAttempts=0,session=null;
 const peers=new Map();
 const pendingIce=new Map();
+const makingOffer=new Map();
 let signalGeneration=0;
+let remoteStream=new MediaStream();
 const rtcConfig={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+function sendSignal(payload){if(ws?.readyState!==1)return false;try{ws.send(JSON.stringify(payload));return true}catch{return false}}
+function queueIce(id,candidate){const q=pendingIce.get(id)||[];q.push(candidate);pendingIce.set(id,q)}
+async function flushIce(id,pc){const q=pendingIce.get(id)||[];if(!pc.remoteDescription)return;for(const candidate of q.splice(0)){try{await pc.addIceCandidate(candidate)}catch(err){console.warn('ICE add failed',id,err)}}}
 function status(t,kind=''){ $('status').className='status '+kind; $('status').textContent=t; }
 function say(t){$('who').textContent=t}
 async function getSession(){const {data,error}=await db.auth.getSession();if(error||!data.session)throw new Error('ابتدا وارد حساب کاربری شوید.');return data.session}
@@ -68,13 +73,14 @@ async function openSignal(session){
  if(old){try{old.onclose=null;old.close()}catch{}}
  const socket=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
  ws=socket;
- socket.onopen=()=>{if(generation!==signalGeneration)return;status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok')};
+ socket.onopen=()=>{if(generation!==signalGeneration)return;status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');};
  socket.onerror=()=>{if(generation!==signalGeneration)return;status('اتصال ارتباطی برقرار نشد؛ در حال تلاش مجدد...','err')};
  socket.onclose=()=>{if(generation!==signalGeneration)return;if(joined&&!closing)reconnectSignal()};
  socket.onmessage=async e=>{if(generation!==signalGeneration)return;
    let m;try{m=JSON.parse(e.data)}catch{return}
-   if(m.type==='joined'){say(mode==='consultant'?'مشاور · اتاق '+room.room_key:'مراجعه‌کننده · اتاق '+room.room_key);status(m.peers?.length?'طرف مقابل در اتاق است؛ در حال اتصال...':'در اتاق هستید؛ منتظر ورود طرف مقابل...','ok');if(mode==='consultant'){for(const p of (m.peers||[])){await makeOffer(p.id)}}}
-   else if(m.type==='peer_joined'){status('طرف مقابل وارد اتاق شد؛ در حال برقراری تصویر...','ok');if(mode==='consultant'&&m.peer?.id)await makeOffer(m.peer.id)}
+   if(m.type==='joined'){say(mode==='consultant'?'مشاور · اتاق '+room.room_key:'مراجعه‌کننده · اتاق '+room.room_key);status(m.peers?.length?'طرف مقابل در اتاق است؛ در حال اتصال...':'در اتاق هستید؛ منتظر ورود طرف مقابل...','ok');room.peers=m.peers||[];if(mode==='consultant'){for(const p of (m.peers||[])){await makeOffer(p.id)}}else{for(const p of (m.peers||[])){sendSignal({type:'ready',to:p.id})}}}
+   else if(m.type==='peer_joined'){status('طرف مقابل وارد اتاق شد؛ در حال برقراری تصویر...','ok');if(m.peer?.id){if(mode==='consultant')await makeOffer(m.peer.id);else sendSignal({type:'ready',to:m.peer.id})}}
+   else if(m.type==='ready'){if(mode==='consultant'&&m.from)await makeOffer(m.from,true)}
    else if(m.type==='offer'){await handleOffer(m)}
    else if(m.type==='answer'){await handleAnswer(m)}
    else if(m.type==='ice'){await handleIce(m)}
@@ -89,11 +95,12 @@ async function getMedia(){
  $('mic').disabled=false;$('cam').disabled=false;$('hangup').disabled=false;
  return localStream;
 }
-function clearPeer(id){const pc=peers.get(id);if(pc){try{pc.close()}catch{};peers.delete(id)}pendingIce.delete(id)}
+function clearPeer(id){const pc=peers.get(id);if(pc){try{pc.close()}catch{};peers.delete(id)}pendingIce.delete(id);makingOffer.delete(id)}
 function reconnectPeer(id){
  if(!ws||ws.readyState!==1||!localStream)return;
- clearPeer(id);
- makeOffer(id).catch(()=>{});
+ const pc=peers.get(id);
+ if(mode==='consultant'&&pc)makeOffer(id,true).catch(()=>{});
+ else if(mode!=='consultant')sendSignal({type:'ready',to:id});
 }
 async function reconnectSignal(){
  if(closing||!session||!room)return;
@@ -111,38 +118,22 @@ function makePc(id){
  let pc=peers.get(id);if(pc)return pc;
  pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);pendingIce.set(id,[]);
  for(const track of localStream.getTracks())pc.addTrack(track,localStream);
- pc.onicecandidate=e=>{if(e.candidate&&ws?.readyState===1)ws.send(JSON.stringify({type:'ice',to:id,candidate:e.candidate}))};
- pc.ontrack=e=>{if(e.streams?.[0])$('remote').srcObject=e.streams[0]};
- pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected')status('تماس صوتی/تصویری برقرار شد.','ok');if(pc.connectionState==='failed'){status('ارتباط تصویری برقرار نشد؛ در حال تلاش برای اتصال دوباره...','err');reconnectPeer(id)}};
-pc.oniceconnectionstatechange=()=>{if(pc.iceConnectionState==='failed'){status('مسیر شبکه تماس پیدا نشد؛ در حال تلاش مجدد...','err');reconnectPeer(id)}};
-pc.onicecandidateerror=e=>{console.warn('ICE candidate error',e.errorCode,e.errorText)};
+ pc.onicecandidate=e=>{if(e.candidate)sendSignal({type:'ice',to:id,candidate:e.candidate})};
+ pc.ontrack=e=>{if(e.streams?.[0])$('remote').srcObject=e.streams[0];else{if(!remoteStream.getTracks().some(t=>t.id===e.track.id))remoteStream.addTrack(e.track);$('remote').srcObject=remoteStream}$('remote').play().catch(()=>{})};
+ pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected')status('✅ تماس صوتی/تصویری دوطرفه برقرار شد.','ok');else if(pc.connectionState==='connecting')status('🔄 در حال برقراری مسیر تصویر و صدا...','ok');else if(pc.connectionState==='disconnected'){status('⚠️ ارتباط موقتاً قطع شد؛ در حال بازیابی...','err');setTimeout(()=>{if(pc.connectionState==='disconnected')reconnectPeer(id)},1200)}else if(pc.connectionState==='failed'){status('❌ مسیر شبکه تماس پیدا نشد؛ در حال تلاش مجدد...','err');reconnectPeer(id)}};
+ pc.oniceconnectionstatechange=()=>{if(pc.iceConnectionState==='checking')status('🔎 در حال بررسی مسیر شبکه دو طرف...','ok');if(pc.iceConnectionState==='connected'||pc.iceConnectionState==='completed')status('✅ مسیر شبکه تماس برقرار شد؛ در حال انتقال تصویر و صدا...','ok');if(pc.iceConnectionState==='failed'){status('❌ ICE شکست خورد؛ درخواست اتصال مجدد ارسال شد.','err');reconnectPeer(id)}};
+ pc.onicecandidateerror=e=>{console.warn('ICE candidate error',id,e.errorCode,e.errorText,e.url||'')};
  return pc;
 }
-async function makeOffer(id){
- const pc=makePc(id);
- if(!ws||ws.readyState!==1)return;
- if(pc.signalingState!=='stable')return;
- const offer=await pc.createOffer();
- await pc.setLocalDescription(offer);
- if(ws?.readyState===1)ws.send(JSON.stringify({type:'offer',to:id,sdp:pc.localDescription}));
+async function makeOffer(id,iceRestart=false){
+ if(mode!=='consultant'||makingOffer.get(id))return;
+ const pc=makePc(id);if(!ws||ws.readyState!==1||pc.signalingState!=='stable')return;
+ makingOffer.set(id,true);
+ try{if(iceRestart)pc.restartIce();const offer=await pc.createOffer(iceRestart?{iceRestart:true}:undefined);await pc.setLocalDescription(offer);sendSignal({type:'offer',to:id,sdp:pc.localDescription})}finally{makingOffer.delete(id)}
 }
-async function handleOffer(m){
- const pc=makePc(m.from);
- await pc.setRemoteDescription(m.sdp);
- const queued=pendingIce.get(m.from)||[];
- for(const candidate of queued){try{await pc.addIceCandidate(candidate)}catch{}}
- queued.length=0;
- const answer=await pc.createAnswer();
- await pc.setLocalDescription(answer);
- if(ws?.readyState===1)ws.send(JSON.stringify({type:'answer',to:m.from,sdp:pc.localDescription}));
-}
-async function handleAnswer(m){const pc=peers.get(m.from);if(pc)await pc.setRemoteDescription(m.sdp)}
-async function handleIce(m){
- const pc=peers.get(m.from);
- if(!pc){const q=pendingIce.get(m.from)||[];q.push(m.candidate);pendingIce.set(m.from,q);return}
- if(pc.remoteDescription){try{await pc.addIceCandidate(m.candidate)}catch{}}
- else{const q=pendingIce.get(m.from)||[];q.push(m.candidate);pendingIce.set(m.from,q)}
-}
+async function handleOffer(m){const pc=makePc(m.from);if(mode==='consultant'&&pc.signalingState!=='stable')return;await pc.setRemoteDescription(m.sdp);await flushIce(m.from,pc);const answer=await pc.createAnswer();await pc.setLocalDescription(answer);sendSignal({type:'answer',to:m.from,sdp:pc.localDescription})}
+async function handleAnswer(m){const pc=peers.get(m.from);if(!pc||pc.signalingState!=='have-local-offer')return;await pc.setRemoteDescription(m.sdp);await flushIce(m.from,pc)}
+async function handleIce(m){const pc=peers.get(m.from);if(!pc||!pc.remoteDescription){queueIce(m.from,m.candidate);return}try{await pc.addIceCandidate(m.candidate)}catch(err){console.warn('ICE candidate rejected',m.from,err)}}
 async function join(){
  if(joined)return;
  closing=false;reconnectAttempts=0;
