@@ -11,7 +11,7 @@ const financePanelBridge='<script src="/finance-panel-bridge.js"></script>';
 const consultantManager='<script src="/stage10-consultant-management.js"></script>';
 const consultantAi='<script src="/consultant-ai-summary.js"></script>';
 const consultantReadonly='<script src="/consultant-profile-readonly.js"></script>';
-const consultantPayment='<script src="/consultant-payment-status.js"></script>';
+const consultantPayment='<script src="/consultant-payment-status.js?v=20260926-1"></script>';
 const consultantOps='<script src="/consultant-operations-pro.js"></script>';
 const consultantBootFix='<script src="/consultant-panel-boot-fix.js?v=20260920"></script>';
 const mediaUi='<script src="/stage5-media-ui.js"></script>';
