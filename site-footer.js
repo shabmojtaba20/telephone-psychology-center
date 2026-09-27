@@ -1,6 +1,11 @@
 (function(){
   function add(){
     // Keep only one panel-access block when another layer (such as the Worker) injected a duplicate.
+    // Remove only education/workshop menu items from the main footer; keep the homepage education section and panel-access links intact.
+    document.querySelectorAll('footer a, footer button, footer li, footer .footer-menu, footer .footer-links').forEach(el=>{
+      const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(/آموزش|کارگاه/.test(t) && !el.closest('.footer-panel-links')) el.remove();
+    });
     const blocks=[...document.querySelectorAll('.footer-panel-links')];
     if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.remove());
     if(document.querySelector('.site-credit')) return;
