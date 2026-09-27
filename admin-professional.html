@@ -532,5 +532,63 @@ document.querySelectorAll('[data-page="security"]').forEach(b=>b.addEventListene
   else setTimeout(loadAppointmentsDirect,100);
 })();
 </script>
+
+<script>
+<!-- APPOINTMENT FILTER HARDENING V2 -->
+(function(){
+  const byId=id=>document.getElementById(id);
+  const faDigits=s=>String(s??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  function tehranParts(iso){
+    const d=new Date(iso); if(Number.isNaN(d.getTime())) return null;
+    const p=new Intl.DateTimeFormat('en-US-u-ca-persian',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+    const o={}; p.forEach(x=>{if(x.type!=='literal')o[x.type]=x.value});
+    return {jalali:String(o.year),month:String(o.month).padStart(2,'0'),day:String(o.day).padStart(2,'0'),date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(d)};
+  }
+  function rows(){return [...document.querySelectorAll('#appointmentsList tr[data-appt-date]')];}
+  function applyFilters(){
+    const rs=rows(); if(!rs.length)return;
+    const y=faDigits(byId('apptJYear')?.value).trim(),m=faDigits(byId('apptJMonth')?.value).padStart(2,'0'),d=faDigits(byId('apptJDay')?.value).padStart(2,'0');
+    const jkey=(y&&m&&d)?y+'-'+m+'-'+d:'';
+    const range=byId('apptRange')?.value||'all', cid=byId('apptConsultantFilter')?.value||'', st=byId('apptStatusFilter')?.value||'', pay=byId('apptPaymentFilter')?.value||'', q=(byId('apptSearch')?.value||'').trim().toLocaleLowerCase('fa');
+    const now=new Date(); let shown=0,today=0,pending=0,confirmed=0;
+    rs.forEach(tr=>{
+      const iso=tr.dataset.apptIso||tr.dataset.apptDate||'', p=tehranParts(iso), status=tr.dataset.status||'', payment=tr.dataset.payment||'';
+      const consultant=tr.dataset.consultantId||'', text=(tr.textContent||'').toLocaleLowerCase('fa');
+      let ok=!!p;
+      if(p){
+        if(p.date===tehranParts(now.toISOString()).date)today++;
+        if(status==='pending')pending++; if(status==='confirmed')confirmed++;
+        if(jkey && (p.jalali+'-'+p.month+'-'+p.day)!==jkey)ok=false;
+        const t=new Date(iso);
+        if(range==='today' && p.date!==tehranParts(now.toISOString()).date)ok=false;
+        if(range==='upcoming' && t<now)ok=false;
+        if(range==='past' && t>=now)ok=false;
+      }
+      if(cid&&consultant!==cid)ok=false; if(st&&status!==st)ok=false; if(pay&&payment!==pay)ok=false; if(q&&!text.includes(q))ok=false;
+      tr.classList.remove('appt-hidden'); tr.style.display=ok?'':'none'; if(ok)shown++;
+    });
+    const set=(id,v)=>{const e=byId(id);if(e)e.textContent=Number(v).toLocaleString('fa-IR')};
+    set('apptCountAll',rs.length);set('apptCountToday',today);set('apptCountPending',pending);set('apptCountConfirmed',confirmed);const r=byId('apptResultCount');if(r)r.textContent=Number(shown).toLocaleString('fa-IR')+' نوبت نمایش داده شد';
+  }
+  function rebuildConsultants(){
+    const s=byId('apptConsultantFilter'); if(!s)return; const current=s.value;
+    const map=new Map(); rows().forEach(tr=>{const id=tr.dataset.consultantId;if(id)map.set(id,tr.dataset.consultantName||'مشاور')});
+    s.innerHTML='<option value="">همه مشاوران</option>'+[...map.entries()].sort((a,b)=>a[1].localeCompare(b[1],'fa')).map(([id,name])=>'<option value="'+String(id).replace(/"/g,'&quot;')+'">'+String(name).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</option>').join('');
+    if(current&&map.has(current))s.value=current;
+  }
+  function clearFilters(){['apptJYear','apptJMonth','apptJDay','apptSearch'].forEach(id=>{const e=byId(id);if(e)e.value=''});['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>{const e=byId(id);if(e)e.value=''});applyFilters()}
+  function init(){
+    if(window.__apptFilterV2)return; window.__apptFilterV2=true;
+    ['apptJYear','apptJMonth','apptJDay','apptSearch'].forEach(id=>byId(id)?.addEventListener('input',applyFilters));
+    ['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>byId(id)?.addEventListener('change',applyFilters));
+    byId('apptClear')?.addEventListener('click',clearFilters);
+    document.querySelectorAll('[data-appt-range]').forEach(b=>b.addEventListener('click',()=>{const e=byId('apptRange');if(e){e.value=b.dataset.apptRange;applyFilters()}}));
+    const tb=byId('appointmentsList'); if(tb){let timer; new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(()=>{rebuildConsultants();applyFilters()},30)}).observe(tb,{childList:true});}
+    rebuildConsultants(); setTimeout(applyFilters,50);
+  }
+  window.applyAppointmentFilters=applyFilters; window.rebuildAppointmentConsultants=rebuildConsultants;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
 <script src="/site-footer.js?v=1"></script>
 </body></html>
