@@ -1,5 +1,8 @@
 (function(){
   function add(){
+    // Keep only one panel-access block when another layer (such as the Worker) injected a duplicate.
+    const blocks=[...document.querySelectorAll('.footer-panel-links')];
+    if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.remove());
     if(document.querySelector('.site-credit')) return;
     const f=document.createElement('footer');
     f.className='site-credit'; f.dir='rtl';
