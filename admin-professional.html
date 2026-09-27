@@ -494,5 +494,43 @@ document.querySelectorAll('[data-page="security"]').forEach(b=>b.addEventListene
  function init(){['apptJYear','apptJMonth','apptJDay','apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter','apptSearch'].forEach(id=>$(id)?.addEventListener('input',apply));['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>$(id)?.addEventListener('change',apply));$('apptClear')?.addEventListener('click',()=>{['apptJYear','apptJMonth','apptJDay','apptSearch'].forEach(id=>$(id).value='');['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>$(id).value='');apply()});document.querySelectorAll('[data-appt-range]').forEach(b=>b.addEventListener('click',()=>{$('apptRange').value=b.dataset.apptRange;apply()}));$('apptRefresh')?.addEventListener('click',()=>load());const tb=$('appointmentsList');if(tb)new MutationObserver(()=>{buildConsultants();apply()}).observe(tb,{childList:true});}
  window.__initAppointmentsDesk=init;setTimeout(init,0);
 })();
-</script>\n<script src="/site-footer.js?v=1"></script>
+</script>\n<script>
+/* Appointment desk hardening: isolated loader independent of the large admin loader. */
+(function(){
+  async function loadAppointmentsDirect(){
+    const tbody=document.getElementById('appointmentsList');
+    if(!tbody)return;
+    try{
+      const sb=window.supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX');
+      const session=(await sb.auth.getSession()).data.session;
+      if(!session){
+        tbody.innerHTML='<tr><td colspan="6">جلسه ورود مدیر پیدا نشد؛ لطفاً دوباره وارد پنل شوید.</td></tr>';
+        return;
+      }
+      const [ar,cr]=await Promise.all([
+        sb.from('appointments').select('id,scheduled_at,status,payment_status,amount,consultant_id').order('scheduled_at',{ascending:false}),
+        sb.from('consultants').select('id,name')
+      ]);
+      if(ar.error)throw ar.error;
+      const names=Object.fromEntries((cr.data||[]).map(x=>[x.id,x.name]));
+      const rows=ar.data||[];
+      const money2=n=>Number(n||0).toLocaleString('fa-IR');
+      const esc2=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+      tbody.innerHTML=rows.length?rows.map(x=>'<tr data-appt-date="'+String(x.scheduled_at||'').slice(0,10)+'" data-consultant-id="'+esc2(x.consultant_id||'')+'" data-consultant-name="'+esc2(names[x.consultant_id]||'انتخاب نشده')+'" data-status="'+esc2(x.status||'')+'" data-payment="'+esc2(x.payment_status||'')+'"><td>'+new Date(x.scheduled_at).toLocaleString('fa-IR')+'</td><td>'+esc2(names[x.consultant_id]||'انتخاب نشده')+'</td><td>'+esc2(x.status||'—')+'</td><td>'+esc2(x.payment_status||'—')+'</td><td>'+money2(x.amount)+' تومان</td><td>—</td></tr>').join(''):'<tr><td colspan="6">هنوز نوبتی ثبت نشده است.</td></tr>';
+      const all=document.getElementById('apptCountAll'),result=document.getElementById('apptResultCount');
+      if(all)all.textContent=money2(rows.length);
+      if(result)result.textContent=money2(rows.length)+' نوبت نمایش داده شد';
+      const observer=new MutationObserver(()=>{if(tbody.children.length && !tbody.querySelector('tr[data-appt-date]') && rows.length)renderAgain()});
+      function renderAgain(){tbody.innerHTML=rows.map(x=>'<tr data-appt-date="'+String(x.scheduled_at||'').slice(0,10)+'" data-consultant-id="'+esc2(x.consultant_id||'')+'" data-consultant-name="'+esc2(names[x.consultant_id]||'انتخاب نشده')+'" data-status="'+esc2(x.status||'')+'" data-payment="'+esc2(x.payment_status||'')+'"><td>'+new Date(x.scheduled_at).toLocaleString('fa-IR')+'</td><td>'+esc2(names[x.consultant_id]||'انتخاب نشده')+'</td><td>'+esc2(x.status||'—')+'</td><td>'+esc2(x.payment_status||'—')+'</td><td>'+money2(x.amount)+' تومان</td><td>—</td></tr>').join('')}
+      observer.observe(tbody,{childList:true});
+    }catch(e){
+      console.error('Appointment direct loader:',e);
+      tbody.innerHTML='<tr><td colspan="6">خطا در دریافت نوبت‌ها: '+String(e.message||e)+'</td></tr>';
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadAppointmentsDirect,{once:true});
+  else setTimeout(loadAppointmentsDirect,100);
+})();
+</script>
+<script src="/site-footer.js?v=1"></script>
 </body></html>
