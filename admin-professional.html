@@ -411,6 +411,7 @@ $('refreshAdminUsers').onclick=()=>loadAdminUsers();
 $('assignAdminRole').onclick=()=>assignSelectedRole(false);
 $('revokeAdminRole').onclick=()=>assignSelectedRole(true);
 renderAdminRoles();
+document.querySelectorAll('[data-page="security"]').forEach(b=>b.addEventListener('click',()=>{renderAdminRoles();loadAdminUsers()}));
 </script>
 </script>
 <script src="/role-access.js?v=2"></script>
