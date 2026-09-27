@@ -5,6 +5,19 @@ const json = (data, status=200, extra={}) => new Response(JSON.stringify(data), 
   headers: {"Content-Type":"application/json; charset=utf-8", ...extra}
 });
 
+
+function addDesignerFooter(response){
+  const type=response.headers.get("Content-Type")||"";
+  if(!response.ok||!type.toLowerCase().includes("text/html")) return response;
+  return response.text().then(html=>{
+    const footer='<style>.site-designer-credit{padding:14px 12px 18px;text-align:center;color:#98a2b3;font-size:11px;line-height:1.8;font-weight:500}.site-designer-credit span{display:inline-block;border-top:1px solid #e5e7eb;padding-top:7px;min-width:170px}@media print{.site-designer-credit{color:#667085;font-size:10px}}</style><div class="site-designer-credit" dir="rtl"><span>طراح مهندس مجتبی شبیهی</span></div>';
+    if(html.includes("site-designer-credit")) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
+    const out=html.includes("</body>")?html.replace("</body>",footer+"</body>"):html+footer;
+    const headers=new Headers(response.headers);headers.delete("Content-Length");
+    return new Response(out,{status:response.status,statusText:response.statusText,headers});
+  });
+}
+
 async function getBearer(request){
   const h=request.headers.get("Authorization")||"";
   if(h.startsWith("Bearer "))return h.slice(7).trim();
@@ -227,7 +240,7 @@ export default {
       const headers = new Headers(response.headers);
       headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       headers.set("Pragma", "no-cache");
-      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+      return addDesignerFooter(new Response(response.body, { status: response.status, statusText: response.statusText, headers }));
     }
 
     if (["/education-dashboard", "/education-dashboard.html", "/education-dashboard/index.html", "/education-dashboard/"].includes(url.pathname)) {
@@ -273,6 +286,6 @@ export default {
       }));
     }
 
-    return env.ASSETS.fetch(request);
+    return addDesignerFooter(await env.ASSETS.fetch(request));
   }
 };
