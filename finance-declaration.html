@@ -24,19 +24,23 @@ async function syncLedger(){
   const {data,error}=await db.rpc('get_finance_ledger_summary',{p_from:from,p_to:to});
   if(error)throw error;
   let rows=data||[];
-  const groups={asset:[],liability:[],equity:[],income:[],expense:[]}; rows.forEach(r=>{if(groups[r.account_type])groups[r.account_type].push(r)});
-  const assetOpen=groups.asset.reduce((s,r)=>s+Number(r.opening_balance||0),0),assetClose=groups.asset.reduce((s,r)=>s+Number(r.closing_balance||0),0);
-  const liabilityOpen=groups.liability.reduce((s,r)=>s+Math.abs(Number(r.opening_balance||0)),0),liabilityClose=groups.liability.reduce((s,r)=>s+Math.abs(Number(r.closing_balance||0)),0);
-  const equityOpen=groups.equity.reduce((s,r)=>s+Math.abs(Number(r.opening_balance||0)),0),equityClose=groups.equity.reduce((s,r)=>s+Math.abs(Number(r.closing_balance||0)),0);
-  const income=groups.income.reduce((s,r)=>s+Math.abs(Number(r.period_credit||0)-Number(r.period_debit||0)),0),expense=groups.expense.reduce((s,r)=>s+Math.abs(Number(r.period_debit||0)-Number(r.period_credit||0)),0);
+  const byLine={}; rows.forEach(r=>{if(r.declaration_line)(byLine[r.declaration_line]??=[]).push(r)});
+  const totals=(line,field)=> (byLine[line]||[]).reduce((s,r)=>s+Math.abs(Number(r[field]||0)),0);
+  const applyLines=(selector,lines,field)=>{const els=[...document.querySelectorAll(selector)];lines.forEach((line,i)=>{if(els[i])els[i].value=totals(line,field)})};
+  applyLines('.ac-open',['cash_bank','short_investments','receivables','other_receivables','partner_current','inventory','prepayments'],'opening_balance');
+  applyLines('.ac-close',['cash_bank','short_investments','receivables','other_receivables','partner_current','inventory','prepayments'],'closing_balance');
+  applyLines('.anc-open',['fixed_assets','intangible','long_investments','other_assets'],'opening_balance');
+  applyLines('.anc-close',['fixed_assets','intangible','long_investments','other_assets'],'closing_balance');
+  applyLines('.l-open',['trade_payables','other_payables','partner_current','advances_received','tax_provision','dividend_payable','loans','long_payables','long_loans','employee_benefits'],'opening_balance');
+  applyLines('.l-close',['trade_payables','other_payables','partner_current','advances_received','tax_provision','dividend_payable','loans','long_payables','long_loans','employee_benefits'],'closing_balance');
+  const income=rows.filter(r=>r.account_type==='income').reduce((s,r)=>s+Math.max(Number(r.period_credit||0)-Number(r.period_debit||0),0),0);
+  const expense=rows.filter(r=>r.account_type==='expense').reduce((s,r)=>s+Math.max(Number(r.period_debit||0)-Number(r.period_credit||0),0),0);
   const net=income-expense;
-  const acOpen=groups.asset.filter(r=>/نقد|بانک|دریافت|موجودی|پیش.?پرداخت|سرمایه.?گذاری کوتاه/.test(r.account_name||'')).reduce((s,r)=>s+Math.max(Number(r.opening_balance||0),0),0);
-  const acClose=groups.asset.filter(r=>/نقد|بانک|دریافت|موجودی|پیش.?پرداخت|سرمایه.?گذاری کوتاه/.test(r.account_name||'')).reduce((s,r)=>s+Math.max(Number(r.closing_balance||0),0),0);
-  const nonOpen=assetOpen-acOpen,nonClose=assetClose-acClose;
-  setVal('.ac','acOpen','acClose',acOpen,acClose);setVal('.anc','ancOpen','ancClose',nonOpen,nonClose);
-  setVal('.l','lOpen','lClose',liabilityOpen,liabilityClose);setVal('.e','eOpen','eClose',equityOpen,equityClose+net);
-  document.getElementById('assetPurchases').value=groups.asset.reduce((s,r)=>s+Math.max(Number(r.period_debit||0),0),0);
-  document.getElementById('fixedPurchases').value=groups.asset.filter(r=>/ثابت|ساختمان|تجهیزات|اثاث|وسایل|ماشین|خودرو/.test(r.account_name||'')).reduce((s,r)=>s+Math.max(Number(r.period_debit||0),0),0);
+  applyLines('.e-open',['capital','legal_reserve','other_reserves','revaluation','retained_earnings'],'opening_balance');
+  applyLines('.e-close',['capital','legal_reserve','other_reserves','revaluation','retained_earnings'],'closing_balance');
+  const eClose=[...document.querySelectorAll('.e-close')]; if(eClose[4])eClose[4].value=Number(eClose[4].value||0)+net;
+  document.getElementById('assetPurchases').value=rows.filter(r=>r.account_type==='asset').reduce((s,r)=>s+Math.max(Number(r.period_debit||0),0),0);
+  document.getElementById('fixedPurchases').value=rows.filter(r=>r.is_fixed_asset).reduce((s,r)=>s+Math.max(Number(r.period_debit||0),0),0);
   calc();notice.textContent='✓ اظهارنامه با دفتر کل و اسناد ثبت‌شده همگام شد.';notice.style.background='#ecfdf5';notice.style.color='#166534';
  }catch(e){notice.textContent='خطا در دریافت اطلاعات دفتر کل: '+(e.message||e);notice.style.background='#fff1f2';notice.style.color='#9f1239'}
 }
