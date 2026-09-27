@@ -73,4 +73,5 @@ $('saveGeneral').onclick=async()=>{const v={id:1,center_name:$('g_name').value.t
 async function preload(){const c=await db.from('consultants').select('*').order('sort_order');if(!c.error)consultants=c.data||[];const s=await db.from('services').select('*').order('sort_order');if(!s.error)services=s.data||[];load()}
 preload();
 </script>
+<script src="/site-footer.js?v=1"></script>
 </body></html>
