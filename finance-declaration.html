@@ -42,4 +42,4 @@ async function syncLedger(){
 }
 const db=supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX');
 document.addEventListener('input',calc);calc();updatePeriod();syncLedger();
-</script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>document.getElementById("endDate")?.addEventListener("change",syncLedger);</script></body></html>
