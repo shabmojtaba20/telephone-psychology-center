@@ -50,6 +50,9 @@ async function navigate(page,button){
   const group=button?.closest?.('.group');
   document.querySelectorAll('.nav .group').forEach(g=>setOpen(g,!!group&&g===group));
   try{history.replaceState(null,'','#'+encodeURIComponent(page))}catch(_){}
+  // Every operational section must refresh its data when opened. The previous
+  // navigation layer only refreshed consultants, leaving appointments and other
+  // sections visually open but stale/empty until a full page reload.
   if(page==='consultants'){
     $('consultants')?.scrollIntoView({block:'start'});
     if(typeof window.loadConsultants==='function'){
@@ -57,6 +60,8 @@ async function navigate(page,button){
     }else if(typeof window.load==='function'){
       Promise.resolve(window.load()).catch(e=>console.error('consultants navigation load failed',e));
     }
+  }else if(typeof window.load==='function'){
+    Promise.resolve(window.load()).catch(e=>console.error('admin section navigation load failed',e));
   }
   if(window.matchMedia?.('(max-width:700px)').matches)$('side')?.classList.remove('open');
   return false;
