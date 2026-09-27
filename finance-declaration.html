@@ -24,6 +24,10 @@ async function syncLedger(){
   const {data,error}=await db.rpc('get_finance_ledger_summary',{p_from:from,p_to:to});
   if(error)throw error;
   let rows=data||[];
+  const {data:accountMeta,error:metaError}=await db.from('finance_accounts').select('id,declaration_line,is_fixed_asset');
+  if(metaError)throw metaError;
+  const metaById=new Map((accountMeta||[]).map(a=>[a.id,a]));
+  rows=rows.map(r=>({...r,...(metaById.get(r.account_id)||{})}));
   const byLine={}; rows.forEach(r=>{if(r.declaration_line)(byLine[r.declaration_line]??=[]).push(r)});
   const totals=(line,field)=> (byLine[line]||[]).reduce((s,r)=>s+Math.abs(Number(r[field]||0)),0);
   const applyLines=(selector,lines,field)=>{const els=[...document.querySelectorAll(selector)];lines.forEach((line,i)=>{if(els[i])els[i].value=totals(line,field)})};
