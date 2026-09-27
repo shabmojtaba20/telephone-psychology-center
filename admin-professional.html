@@ -494,4 +494,5 @@ document.querySelectorAll('[data-page="security"]').forEach(b=>b.addEventListene
  function init(){['apptJYear','apptJMonth','apptJDay','apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter','apptSearch'].forEach(id=>$(id)?.addEventListener('input',apply));['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>$(id)?.addEventListener('change',apply));$('apptClear')?.addEventListener('click',()=>{['apptJYear','apptJMonth','apptJDay','apptSearch'].forEach(id=>$(id).value='');['apptRange','apptConsultantFilter','apptStatusFilter','apptPaymentFilter'].forEach(id=>$(id).value='');apply()});document.querySelectorAll('[data-appt-range]').forEach(b=>b.addEventListener('click',()=>{$('apptRange').value=b.dataset.apptRange;apply()}));$('apptRefresh')?.addEventListener('click',()=>load());const tb=$('appointmentsList');if(tb)new MutationObserver(()=>{buildConsultants();apply()}).observe(tb,{childList:true});}
  window.__initAppointmentsDesk=init;setTimeout(init,0);
 })();
-</script>\n</body></html>
+</script>\n<script src="/site-footer.js?v=1"></script>
+</body></html>
