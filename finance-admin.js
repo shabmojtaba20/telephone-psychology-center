@@ -35,13 +35,14 @@
   function gatewayCard(name,key,placeholder){return `<div class="item"><b>${name}</b><label><input type="checkbox" id="${key}Enabled"> فعال</label><input id="${key}Id" placeholder="${placeholder}"></div>`}
   async function refreshAll(){
     try{
-      const [t,i,r,f,c]=await Promise.all([
+      const [t,i,rr,f,c]=await Promise.all([
         db.from('finance_transactions').select('*').order('occurred_at',{ascending:false}).limit(200),
         db.from('invoices').select('*').order('created_at',{ascending:false}).limit(100),
-        db.from('payment_receipts').select('*').order('submitted_at',{ascending:false}).limit(100),
+        db.rpc('admin_list_payment_receipts'),
         db.from('center_financial_settings').select('*').eq('id',1).maybeSingle(),
         db.from('card_payment_settings').select('*').eq('id',1).maybeSingle()
       ]);
+      const r=rr;
       for(const x of [t,i,r,f,c])if(x.error)throw x.error;
       const T=t.data||[],I=i.data||[],R=r.data||[];
       const paid=T.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.amount||0),0);
