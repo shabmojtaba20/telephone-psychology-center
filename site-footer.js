@@ -64,10 +64,18 @@
       document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
     };
     cleanEducationFooter();
-    const blocks=[...document.querySelectorAll('.footer-panel-links')];
-    if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.closest('.footer')?.remove()||x.remove());
-    const panelSections=[...document.querySelectorAll('footer, body > .footer')].filter(el=>norm(el.textContent).includes('دسترسی پنل‌ها'));
-    if(panelSections.length>1) panelSections.slice(0,-1).forEach(el=>el.remove());
+    const isHome=location.pathname==='/' || location.pathname==='/index.html';
+    if(isHome){
+      document.querySelectorAll('footer .footer-panels').forEach(el=>el.remove());
+      const footer=document.querySelector('footer.professional-footer, footer');
+      if(footer && !footer.querySelector('.footer-panels')){
+        const section=document.createElement('div');
+        section.className='footer-panels';
+        section.innerHTML='<div class="footer-panel-title">دسترسی پنل‌ها</div><nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>';
+        const bottom=footer.querySelector('.footer-bottom');
+        footer.querySelector('.c')?.insertBefore(section,bottom||null);
+      }
+    }
     loadContacts();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',add); else add();
