@@ -266,7 +266,14 @@ export default {
       // Remove the legacy static footer panel block from older index.html builds.
       // The live colored panel block is created by site-footer.js, so this only
       // strips the old hard-coded copy before the HTML reaches the browser.
-      html = html.replace(/<div\\s+class="footer-panels">[\\s\\S]*?<\\/nav>\\s*<\\/div>/gi, "");
+            const legacyStart = html.indexOf('<div class="footer-panels">');
+      if (legacyStart >= 0) {
+        const legacyEnd = html.indexOf('</nav>', legacyStart);
+        const legacyClose = legacyEnd >= 0 ? html.indexOf('</div>', legacyEnd) : -1;
+        if (legacyClose >= 0) {
+          html = html.slice(0, legacyStart) + html.slice(legacyClose + 6);
+        }
+      }
 
       const navigationFix = `<style>
         header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:13px;padding:7px 10px;border-radius:9px}
