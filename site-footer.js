@@ -17,6 +17,8 @@
     return '<div class="footer-contact-item footer-contact-static"><span class="footer-contact-label">'+label+'</span><span>'+esc(value)+'</span></div>';
   };
   async function loadContacts(){
+    const isHome=location.pathname==='/' || location.pathname==='/index.html';
+    if(!isHome)return;
     if(document.querySelector('.footer-contact-section[data-loaded]')) return;
     try{
       const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
@@ -36,14 +38,15 @@
         contactText('🕐 ساعات فعالیت',data.working_hours)
       ].filter(Boolean).join('');
       if(!items)return;
-      const target=[...document.querySelectorAll('footer')].find(el=>el.querySelector('.footer-panel-links'))||document.querySelector('footer');
-      if(!target||target.querySelector('.footer-contact-section'))return;
+      const target=document.querySelector('footer .footer-contact-host');
+      if(!target)return;
+      target.querySelector('.footer-contact-placeholder')?.remove();
+      if(target.querySelector('.footer-contact-section'))return;
       const section=document.createElement('div');
       section.className='footer-contact-section';
       section.dataset.loaded='1';
       section.innerHTML='<div class="footer-panel-title">راه‌های ارتباطی</div><div class="footer-contact-grid">'+items+'</div>';
-      const host=target.querySelector('.c')||target;
-      host.appendChild(section);
+      target.appendChild(section);
     }catch(e){console.warn('footer contact load failed',e)}
   }
   function add(){
