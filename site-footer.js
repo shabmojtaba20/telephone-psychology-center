@@ -1,10 +1,20 @@
 (function(){
   function add(){
-    // Keep the footer panel-access links; remove only education/workshop items from the main footer.\n    // Remove education/workshop menu items from the main footer.
-    document.querySelectorAll('footer a, footer button, footer li, footer .footer-menu, footer .footer-links').forEach(el=>{
-      const t=(el.textContent||'').replace(/\s+/g,' ').trim();
-      if(/آموزش|کارگاه/.test(t)) el.remove();
-    });
+    const cleanEducationFooter=()=>{
+      const norm=v=>(v||'').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/\s+/g,' ').trim();
+      const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
+      document.querySelectorAll('body *').forEach(el=>{
+        if(el.closest('#education')) return;
+        const t=norm(el.textContent);
+        if(!t || el.children.length) return;
+        if(exact.test(t)){
+          const target=el.closest('a,button,li')||el;
+          if(!target.closest('#education')) target.remove();
+        }
+      });
+      document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
+    };
+    cleanEducationFooter();
     const blocks=[...document.querySelectorAll('.footer-panel-links')];
     if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.remove());
     if(document.querySelector('.site-credit')) return;
@@ -17,4 +27,5 @@
     (document.body||document.documentElement).appendChild(f);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',add); else add();
+  new MutationObserver(()=>add()).observe(document.documentElement,{subtree:true,childList:true});
 })();
