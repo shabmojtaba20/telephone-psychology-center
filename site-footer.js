@@ -62,14 +62,15 @@
     });
     document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
 
-    // Keep exactly one panel-access block on every page that has a footer.
-    const panelBlocks=[...document.querySelectorAll('footer .footer-panels, body > .footer-panels')];
-    if(panelBlocks.length>1) panelBlocks.slice(1).forEach(el=>el.remove());
-
+    // User/home footer: rebuild panel access as one canonical block.
+    // Remove every old/duplicate panel block first, then create exactly one.
     const isHome=location.pathname==='/' || location.pathname==='/index.html';
+    const panelBlocks=[...document.querySelectorAll('.footer-panels')];
+    panelBlocks.forEach(el=>el.remove());
+
     if(isHome){
       const footer=document.querySelector('footer.professional-footer, footer');
-      if(footer && !footer.querySelector('.footer-panels')){
+      if(footer){
         const section=document.createElement('div');
         section.className='footer-panels';
         section.innerHTML='<div class="footer-panel-title">دسترسی پنل‌ها</div><nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>';
