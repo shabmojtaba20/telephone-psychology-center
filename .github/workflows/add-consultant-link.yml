@@ -42,15 +42,6 @@ jobs:
               s = s.replace(consultant, consultant + finance, 1)
               changed = True
 
-          # Restore panel links in the footer (without a profile button).
-          footer_marker = '<footer class="footer"><div class="c"><h3>مرکز مشاوره تلفنی روان</h3><p>رزرو نوبت و پرداخت آنلاین خدمات مشاوره.</p>'
-          footer_nav = '<nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>'
-          if 'class="footer-panel-links"' not in s:
-              if footer_marker not in s:
-                  raise SystemExit('Footer marker not found')
-              s = s.replace(footer_marker, footer_marker + footer_nav, 1)
-              changed = True
-
           # Make role links visible on mobile while preserving the existing responsive navigation.
           css_marker = '@media(max-width:700px){.links a{display:none}.steps{grid-template-columns:1fr}.nav{min-height:60px}}'
           css_replacement = '@media(max-width:700px){.links a{display:none}.links a.btn{display:inline-block!important}.steps{grid-template-columns:1fr}.nav{min-height:60px}}'
