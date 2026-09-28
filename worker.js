@@ -262,6 +262,12 @@ export default {
         return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
       }
       let html = await response.text();
+
+      // Remove the legacy static footer panel block from older index.html builds.
+      // The live colored panel block is created by site-footer.js, so this only
+      // strips the old hard-coded copy before the HTML reaches the browser.
+      html = html.replace(/<div\\s+class="footer-panels">[\\s\\S]*?<\\/nav>\\s*<\\/div>/gi, "");
+
       const navigationFix = `<style>
         header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:13px;padding:7px 10px;border-radius:9px}
         header .links{flex-wrap:wrap}
