@@ -29,6 +29,7 @@ body{margin:0;font-family:Tahoma,Arial;background:#f4f7fb;color:#172033}.side{po
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const db=supabase.createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX');
+window.db=db;
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('fa-IR'), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function note(t,b=false){$('notice').className=b?'notice err':'notice';$('notice').textContent=t;window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>$('notice').textContent='',4500)}
 async function guard(){const{data:{session}}=await db.auth.getSession();if(!session){location.replace('/admin-login.html');return false}const{data:ok,error}=await db.rpc('has_admin_permission',{p_permission:'finance.view'});if(error||ok!==true){note('این حساب/نقش به پنل مالی دسترسی ندارد.',true);setTimeout(()=>location.replace('/admin-professional.html'),900);return false}return true}
