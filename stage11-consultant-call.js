@@ -19,22 +19,54 @@ wait(async()=>{
  const render=async()=>{
   await refreshAppointments();
   document.querySelectorAll('#myAppointmentsList [data-appointment-id]').forEach(card=>{
-   const slot=card.querySelector('.stage11-call-slot'); if(!slot)return;
+   let slot=card.querySelector('.stage11-call-slot');
+   if(!slot){
+    slot=document.createElement('div');
+    slot.className='stage11-call-slot';
+    const del=card.querySelector('.stage11-delete-slot');
+    if(del)card.insertBefore(slot,del);else card.appendChild(slot);
+   }
    const id=String(card.dataset.appointmentId||''),row=dbAppointments.get(id);
    const scheduled=row?.scheduled_at||card.dataset.scheduledAt||'',start=new Date(scheduled).getTime(),now=Date.now();
-   const status=row?.status||card.dataset.appointmentStatus,pay=row?.payment_status||card.dataset.paymentStatus;
-   const eligible=status==='confirmed'&&pay==='paid'&&Number.isFinite(start);
+   const status=String(row?.status||card.dataset.appointmentStatus||'').toLowerCase();
+   const pay=String(row?.payment_status||card.dataset.paymentStatus||'').toLowerCase();
+   const paid=pay==='paid';
+   const validDate=Number.isFinite(start);
+   const eligible=status==='confirmed'&&paid&&validDate;
    const active=eligible&&now>=start-15*60*1000&&now<start+60*60*1000;
    const future=eligible&&now<start-15*60*1000;
    const ended=eligible&&now>=start+60*60*1000;
-   if(active&&!notified.has(id)&&window.callNotifications?.isEnabled?.()){notified.add(id);window.callNotifications.notify('📞 تماس با مشاور فعال شد','زمان نوبت شما رسیده است. برای ورود به تماس با مشاور، دکمه «تماس با مشاور» را بزنید.',location.origin+'/#myAppointments');try{navigator.vibrate?.([400,120,400,120,700])}catch{}}
-   slot.innerHTML='';
-   if(!eligible)return;
-   const stateText=active?'🟢 تماس اکنون فعال است':future?'🔒 تماس از ۱۵ دقیقه قبل از شروع نوبت فعال می‌شود.':'⛔ زمان تماس این نوبت به پایان رسیده است.';
-   slot.innerHTML=`<div style="margin-top:12px;padding:10px;border-radius:10px;background:#f5faf7;border:1px solid #b7dec5"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-consultant-call="${esc(id)}" ${active?'':'disabled'} style="background:${active?'#16803c':'#94a3b8'};color:#fff">📞 تماس با مشاور</button><button class="btn" data-consultant-end="${esc(id)}" style="display:none;background:#b42318;color:#fff">⏹ پایان جلسه</button><span data-call-countdown class="muted">${stateText}</span></div><div data-call-status class="muted" style="margin-top:7px"></div></div>`;
-   const btn=slot.querySelector('[data-consultant-call]'),endBtn=slot.querySelector('[data-consultant-end]'),msg=slot.querySelector('[data-call-status]'),count=slot.querySelector('[data-call-countdown]');
-   if(future){const d=Math.max(0,start-Date.now()),m=Math.floor(d/60000),s=Math.floor((d%60000)/1000);count.textContent=`🔒 تماس در زمان شروع نوبت فعال می‌شود — ${m} دقیقه و ${s} ثانیه مانده`;}
-   btn.addEventListener('click',()=>{if(btn.disabled)return;btn.disabled=true;btn.textContent='در حال ورود به تماس…';location.href='/call-room.html?appointment_id='+encodeURIComponent(id)+'&role=client';});
+   if(active&&!notified.has(id)&&window.callNotifications?.isEnabled?.()){
+    notified.add(id);
+    window.callNotifications.notify('📞 تماس با مشاور فعال شد','زمان نوبت شما رسیده است. برای ورود به تماس با مشاور، دکمه «تماس با مشاور» را بزنید.',location.origin+'/#myAppointments');
+    try{navigator.vibrate?.([400,120,400,120,700])}catch{}
+   }
+   let stateText='',buttonText='📞 تماس با مشاور',disabled=true,bg='#94a3b8';
+   if(!validDate){
+    stateText='⚠️ زمان نوبت قابل تشخیص نیست.';
+   }else if(status==='cancelled'){
+    stateText='⛔ این نوبت لغو شده و امکان تماس ندارد.';
+   }else if(status==='completed'){
+    stateText='✅ این جلسه قبلاً انجام شده است.';
+   }else if(!paid){
+    stateText='💳 پس از ثبت پرداخت، امکان تماس فعال خواهد شد.';
+   }else if(status!=='confirmed'){
+    stateText='🕐 پرداخت ثبت شده؛ تماس پس از تأیید نوبت توسط مرکز فعال می‌شود.';
+   }else if(active){
+    stateText='🟢 تماس اکنون فعال است';
+    disabled=false;
+    bg='#16803c';
+   }else if(future){
+    const d=Math.max(0,start-Date.now()),m=Math.floor(d/60000),s=Math.floor((d%60000)/1000);
+    stateText=`🔒 تماس از ۱۵ دقیقه قبل از شروع نوبت فعال می‌شود — ${m} دقیقه و ${s} ثانیه مانده`;
+   }else if(ended){
+    stateText='⛔ زمان تماس این نوبت به پایان رسیده است.';
+   }
+   slot.innerHTML=`<div style="margin-top:12px;padding:10px;border-radius:10px;background:#f5faf7;border:1px solid #b7dec5"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-consultant-call="${esc(id)}" ${disabled?'disabled':''} style="background:${bg};color:#fff">${buttonText}</button><button class="btn" data-consultant-end="${esc(id)}" style="display:none;background:#b42318;color:#fff">⏹ پایان جلسه</button><span data-call-countdown class="muted">${stateText}</span></div><div data-call-status class="muted" style="margin-top:7px"></div></div>`;
+   const btn=slot.querySelector('[data-consultant-call]'),endBtn=slot.querySelector('[data-consultant-end]'),msg=slot.querySelector('[data-call-status]');
+   if(!disabled){
+    btn.addEventListener('click',()=>{if(btn.disabled)return;btn.disabled=true;btn.textContent='در حال ورود به تماس…';location.href='/call-room.html?appointment_id='+encodeURIComponent(id)+'&role=client';});
+   }
    endBtn.addEventListener('click',async()=>{endBtn.disabled=true;try{const {error}=await db.rpc('finish_my_consultant_call',{p_appointment_id:id,p_status:'completed'});if(error)throw error;msg.textContent='✅ جلسه با موفقیت ثبت شد.';setTimeout(render,300);}catch(err){msg.textContent='❌ '+(err.message||'ثبت پایان جلسه انجام نشد.');endBtn.disabled=false;}});
   });
  };
