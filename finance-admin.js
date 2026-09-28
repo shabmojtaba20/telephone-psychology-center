@@ -34,29 +34,51 @@
   }
   function gatewayCard(name,key,placeholder){return `<div class="item"><b>${name}</b><label><input type="checkbox" id="${key}Enabled"> فعال</label><input id="${key}Id" placeholder="${placeholder}"></div>`}
   async function refreshAll(){
+    // رسیدهای کارت‌به‌کارت باید مستقل از سایر بخش‌های مالی بارگذاری شوند.
+    // خطای RLS/داده در تراکنش‌ها یا تنظیمات بانکی نباید نمایش رسید را متوقف کند.
     try{
-      const [t,i,rr,f,c]=await Promise.all([
-        db.from('finance_transactions').select('*').order('occurred_at',{ascending:false}).limit(200),
-        db.from('invoices').select('*').order('created_at',{ascending:false}).limit(100),
-        db.rpc('admin_list_payment_receipts'),
-        db.from('center_financial_settings').select('*').eq('id',1).maybeSingle(),
-        db.from('card_payment_settings').select('*').eq('id',1).maybeSingle()
-      ]);
-      const r=rr;
-      for(const x of [t,i,r,f,c])if(x.error)throw x.error;
-      const T=t.data||[],I=i.data||[],R=r.data||[];
+      const rr=await db.rpc('admin_list_payment_receipts');
+      if(rr.error) throw rr.error;
+      const R=rr.data||[];
+      $('fxReceipts').textContent=money(R.filter(x=>x.status==='pending').length);
+      $('fxReceiptsList').innerHTML=R.length?R.map(x=>`<tr><td>${esc(x.full_name||x.appointment_id||'-')}</td><td>${money(x.amount)} تومان</td><td>${esc(x.status)}</td><td>${new Date(x.submitted_at).toLocaleString('fa-IR')}</td><td>${x.receipt_path?`<span>${esc(x.receipt_path)}</span>`:'-'}</td><td>${x.status==='pending'?`<button class="btn green" data-receipt="${esc(x.id)}" data-status="approved">تأیید</button> <button class="btn red" data-receipt="${esc(x.id)}" data-status="rejected">رد</button>`:'-'}</td></tr>`).join(''):'<tr><td colspan="6">رسیدی ثبت نشده است.</td></tr>';
+    }catch(e){
+      $('fxReceiptsList').innerHTML='<tr><td colspan="6">خطا در بارگذاری رسیدها: '+esc(e.message||e)+'</td></tr>';
+      note(e.message||'خطا در بارگذاری رسیدهای کارت‌به‌کارت',true);
+    }
+
+    // سایر بخش‌های مالی جداگانه بارگذاری شوند تا خطای آنها رسیدها را مختل نکند.
+    try{
+      const t=await db.from('finance_transactions').select('*').order('occurred_at',{ascending:false}).limit(200);
+      if(t.error)throw t.error;
+      const T=t.data||[];
       const paid=T.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.amount||0),0);
       const pending=T.filter(x=>x.status==='pending').reduce((s,x)=>s+Number(x.amount||0),0);
-      $('fxIncome').textContent=money(paid);$('fxPending').textContent=money(pending);$('fxInvoices').textContent=money(I.length);$('fxReceipts').textContent=money(R.filter(x=>x.status==='pending').length);
-      $('financeIncome')?.textContent=money(paid);$('financeCount')?.textContent=money(T.length);
+      $('fxIncome').textContent=money(paid);$('fxPending').textContent=money(pending);$('financeIncome')?.textContent=money(paid);$('financeCount')?.textContent=money(T.length);
       $('fxTransactions').innerHTML=T.length?T.map(x=>`<tr><td>${new Date(x.occurred_at||x.created_at).toLocaleString('fa-IR')}</td><td>${esc(x.transaction_type)}</td><td>${esc(x.payment_method||'')}</td><td>${esc(x.gateway||'')}</td><td>${money(x.amount)} ${esc(x.currency||'IRR')}</td><td>${esc(x.status)}</td><td>${esc(x.tracking_code||x.reference_id||'')}</td></tr>`).join(''):'<tr><td colspan="7">تراکنشی ثبت نشده است.</td></tr>';
+    }catch(e){ note('بارگذاری تراکنش‌ها: '+(e.message||e),true); }
+
+    try{
+      const i=await db.from('invoices').select('*').order('created_at',{ascending:false}).limit(100);
+      if(i.error)throw i.error;
+      const I=i.data||[];
+      $('fxInvoices').textContent=money(I.length);
       $('fxInvoicesList').innerHTML=I.length?I.map(x=>`<tr><td>${esc(x.invoice_number)}</td><td>${esc(x.title)}</td><td>${money(x.amount)} تومان</td><td>${esc(x.status)}</td><td>${new Date(x.issued_at||x.created_at).toLocaleDateString('fa-IR')}</td><td>${x.status!=='paid'?`<button class="btn green" data-invoice="${esc(x.id)}">تسویه</button>`:'تسویه شده'}</td></tr>`).join(''):'<tr><td colspan="6">فاکتوری ثبت نشده است.</td></tr>';
-      $('fxReceiptsList').innerHTML=R.length?R.map(x=>`<tr><td>${esc(x.appointment_id)}</td><td>${money(x.amount)} تومان</td><td>${esc(x.status)}</td><td>${new Date(x.submitted_at).toLocaleString('fa-IR')}</td><td>${x.receipt_path?`<span>${esc(x.receipt_path)}</span>`:'-'}</td><td>${x.status==='pending'?`<button class="btn green" data-receipt="${esc(x.id)}" data-status="approved">تأیید</button> <button class="btn red" data-receipt="${esc(x.id)}" data-status="rejected">رد</button>`:'-'}</td></tr>`).join(''):'<tr><td colspan="6">رسیدی ثبت نشده است.</td></tr>';
+    }catch(e){ note('بارگذاری فاکتورها: '+(e.message||e),true); }
+
+    try{
+      const f=await db.from('center_financial_settings').select('*').eq('id',1).maybeSingle();
+      if(f.error)throw f.error;
       const x=f.data||{};
       $('fxBankName').value=x.bank_name||'';$('fxCardHolder').value=x.card_holder||'';$('fxAccount').value=x.account_number||'';$('fxCard').value=x.card_number||'';$('fxIban').value=x.iban||'';$('fxPaymentNotes').value=x.payment_notes||'';
       $('zarinEnabled').checked=!!x.zarinpal_enabled;$('zarinId').value=x.zarinpal_merchant_id||'';$('iranEnabled').checked=!!x.iran_dargah_enabled;$('iranId').value=x.iran_dargah_merchant_id||'';$('parsianEnabled').checked=!!x.parsian_enabled;$('parsianId').value=x.parsian_terminal_id||'';$('pasargadEnabled').checked=!!x.pasargad_enabled;$('pasargadId').value=x.pasargad_terminal_id||'';
+    }catch(e){ note('تنظیمات مالی: '+(e.message||e),true); }
+
+    try{
+      const c=await db.from('card_payment_settings').select('*').eq('id',1).maybeSingle();
+      if(c.error)throw c.error;
       $('fxCardActive').checked=!!c.data?.is_active;
-    }catch(e){note(e.message||'خطا در بارگذاری امور مالی',true)}
+    }catch(e){ note('تنظیمات کارت‌به‌کارت: '+(e.message||e),true); }
   }
   async function saveBank(){
     const r=await db.from('center_financial_settings').update({bank_name:$('fxBankName').value.trim(),card_holder:$('fxCardHolder').value.trim(),account_number:$('fxAccount').value.trim(),card_number:$('fxCard').value.trim(),iban:$('fxIban').value.trim(),payment_notes:$('fxPaymentNotes').value.trim(),updated_at:new Date().toISOString()}).eq('id',1);
