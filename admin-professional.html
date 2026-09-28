@@ -370,8 +370,15 @@ async function reviewPaymentReceipt(id,decision){
    if(!noteText.trim())return note('علت رد رسید الزامی است',true);
    if(!confirm('این رسید رد شود؟'))return;
  }
- const r=await db.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:decision,p_note:noteText||null,p_tracking_code:tracking.trim()||null});
+ let r=await db.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:decision,p_note:noteText||null,p_tracking_code:tracking.trim()||null,p_confirm_mismatch:false});
  if(r.error){note(r.error.message,true);return}
+ if(decision==='approved'&&r.data?.requires_confirmation){
+   const diff=Number(r.data.difference||0);
+   const msg=(r.data.message||'مبلغ رسید با سفارش مغایرت دارد.')+'\n\nمبلغ رسید: '+money(r.data.receipt_amount)+' تومان\nمبلغ سفارش: '+money(r.data.order_amount)+' تومان\nاختلاف: '+money(Math.abs(diff))+' تومان\n\nتأیید دستی مغایرت انجام شود؟';
+   if(!confirm(msg))return;
+   r=await db.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:decision,p_note:noteText||null,p_tracking_code:tracking.trim()||null,p_confirm_mismatch:true});
+   if(r.error){note(r.error.message,true);return}
+ }
  note(decision==='approved'?'رسید تأیید شد؛ وضعیت پرداخت و تراکنش مالی به‌روزرسانی شد.':'رسید رد شد.');
  await loadPaymentReceipts();
  const d=finRange('month');await loadAdvancedFinance($('finFrom').value||d[0],$('finTo').value||d[1]);
