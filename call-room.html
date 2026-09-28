@@ -32,6 +32,10 @@ h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{mar
 <div class="videoBox"><span class="label">شما</span><video id="local" autoplay muted playsinline></video></div>
 <div class="videoBox"><span class="label">طرف مقابل</span><video id="remote" autoplay playsinline></video></div>
 </div>
+<div id="remoteAudioPrompt" class="status" style="display:none;margin-top:10px">
+  برای نمایش صدا و تصویر طرف مقابل، روی «فعال‌سازی صدا و تصویر» بزنید.
+  <button id="enableRemote" class="btn" style="margin-top:8px">🔊 فعال‌سازی صدا و تصویر</button>
+</div>
 </section>
 </main>
 <script type="module">
@@ -48,7 +52,11 @@ const pendingIce=new Map();
 const makingOffer=new Map();
 let signalGeneration=0;
 let remoteStream=new MediaStream();
-const rtcConfig={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+const rtcConfig={iceServers:[
+ {urls:'stun:stun.cloudflare.com:3478'},
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun1.l.google.com:19302'}
+],bundlePolicy:'max-bundle',rtcpMuxPolicy:'require',iceCandidatePoolSize:4};
 function sendSignal(payload){if(ws?.readyState!==1)return false;try{ws.send(JSON.stringify(payload));return true}catch{return false}}
 function queueIce(id,candidate){const q=pendingIce.get(id)||[];q.push(candidate);pendingIce.set(id,q)}
 async function flushIce(id,pc){const q=pendingIce.get(id)||[];if(!pc.remoteDescription)return;for(const candidate of q.splice(0)){try{await pc.addIceCandidate(candidate)}catch(err){console.warn('ICE add failed',id,err)}}}
@@ -119,7 +127,21 @@ function makePc(id){
  pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);pendingIce.set(id,[]);
  for(const track of localStream.getTracks())pc.addTrack(track,localStream);
  pc.onicecandidate=e=>{if(e.candidate)sendSignal({type:'ice',to:id,candidate:e.candidate})};
- pc.ontrack=e=>{if(e.streams?.[0])$('remote').srcObject=e.streams[0];else{if(!remoteStream.getTracks().some(t=>t.id===e.track.id))remoteStream.addTrack(e.track);$('remote').srcObject=remoteStream}$('remote').play().catch(()=>{})};
+ pc.ontrack=e=>{
+  const video=$('remote');
+  if(e.streams?.[0]) video.srcObject=e.streams[0];
+  else{
+    if(!remoteStream.getTracks().some(t=>t.id===e.track.id)) remoteStream.addTrack(e.track);
+    video.srcObject=remoteStream;
+  }
+  video.muted=false;
+  video.play().then(()=>{
+    $('remoteAudioPrompt').style.display='none';
+  }).catch(()=>{
+    $('remoteAudioPrompt').style.display='block';
+    status('تصویر طرف مقابل دریافت شد؛ برای فعال‌سازی صدا و پخش تصویر روی دکمه زیر بزنید.','ok');
+  });
+};
  pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected')status('✅ تماس صوتی/تصویری دوطرفه برقرار شد.','ok');else if(pc.connectionState==='connecting')status('🔄 در حال برقراری مسیر تصویر و صدا...','ok');else if(pc.connectionState==='disconnected'){status('⚠️ ارتباط موقتاً قطع شد؛ در حال بازیابی...','err');setTimeout(()=>{if(pc.connectionState==='disconnected')reconnectPeer(id)},1200)}else if(pc.connectionState==='failed'){status('❌ مسیر شبکه تماس پیدا نشد؛ در حال تلاش مجدد...','err');reconnectPeer(id)}};
  pc.oniceconnectionstatechange=()=>{if(pc.iceConnectionState==='checking')status('🔎 در حال بررسی مسیر شبکه دو طرف...','ok');if(pc.iceConnectionState==='connected'||pc.iceConnectionState==='completed')status('✅ مسیر شبکه تماس برقرار شد؛ در حال انتقال تصویر و صدا...','ok');if(pc.iceConnectionState==='failed'){status('❌ ICE شکست خورد؛ درخواست اتصال مجدد ارسال شد.','err');reconnectPeer(id)}};
  pc.onicecandidateerror=e=>{console.warn('ICE candidate error',id,e.errorCode,e.errorText,e.url||'')};
@@ -155,6 +177,17 @@ function end(){
  $('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
  joined=false;status('تماس پایان یافت. برای برقراری دوباره می‌توانید دوباره «ورود به تماس» را بزنید.','err');$('join').disabled=false;$('join').textContent='🎙️ ورود مجدد به تماس';
 }
+$('enableRemote').onclick=async()=>{
+  const video=$('remote');
+  video.muted=false;
+  try{
+    await video.play();
+    $('remoteAudioPrompt').style.display='none';
+    status('✅ صدا و تصویر طرف مقابل فعال شد.','ok');
+  }catch{
+    status('مرورگر هنوز اجازه پخش خودکار صدا را نمی‌دهد؛ یک بار دیگر روی دکمه بزنید.','err');
+  }
+};
 $('join').onclick=join;$('hangup').onclick=end;
 $('mic').onclick=()=>{const t=localStream?.getAudioTracks?.()[0];if(t){t.enabled=!t.enabled;$('mic').textContent=t.enabled?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
 $('cam').onclick=()=>{const t=localStream?.getVideoTracks?.()[0];if(t){t.enabled=!t.enabled;$('cam').textContent=t.enabled?'📷 دوربین':'🚫 دوربین خاموش'}};
