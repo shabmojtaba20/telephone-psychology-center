@@ -4,7 +4,7 @@
   const RULES={
     dashboard:['dashboard.view'],general:['general.manage'],appearance:['appearance.manage'],media:['media.manage'],contact:['contact.manage'],
     consultants:['consultants.manage'],availability:['availability.manage'],appointments:['appointments.manage'],services:['services.manage'],
-    finance:['finance.view','finance.manage'],bank:['bank.manage'],gateways:['gateways.manage'],messages:['messages.manage'],
+    finance:['finance.view','finance.manage'],paymentReceipts:['finance.view','finance.manage'],bank:['bank.manage'],gateways:['gateways.manage'],messages:['messages.manage'],
     content:['content.manage'],education:['education.manage'],notifications:['notifications.manage'],security:['security.manage'],
     organizations:['support.manage'],workshops:['workshops.manage'],callRooms:['calls.manage'],reports:['reports.view']
   };
