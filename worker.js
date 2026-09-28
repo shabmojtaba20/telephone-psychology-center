@@ -268,7 +268,33 @@ export default {
         .footer .footer-menu,.footer .footer-links{display:none!important}.footer-panel-links{display:flex!important;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:18px}.footer-panel-links a{display:inline-flex!important;align-items:center;justify-content:center;background:#fff;color:#344054!important;text-decoration:none;border:1px solid #d0d5dd;border-radius:8px;padding:6px 11px;font-size:12px;min-width:92px}.footer-panel-links a[href="/admin.html"]{background:#2563eb;color:#fff!important;border-color:#2563eb}
         @media(max-width:700px){header .nav{align-items:flex-start;flex-direction:column;padding:10px 0}header .links{width:100%;justify-content:flex-start;gap:8px}header .links a{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:12px;padding:6px 9px}header .links #accountBtn{display:inline-flex!important;font-size:12px;padding:6px 9px}}
       </style><script>
-      (()=>{const run=()=>{document.querySelectorAll('footer a,footer button,footer li,footer .footer-menu,footer .footer-links').forEach(el=>{const t=(el.textContent||'').replace(/\s+/g,' ').trim();if(/آموزش|کارگاه/.test(t)&&!el.closest('.footer-panel-links'))el.remove();});const nav=document.querySelector('header nav.links');if(!nav)return;const targets=[['/admin.html','پنل مدیریت'],['/admin-v5.html','پنل مالی'],['/consultant-panel.html','پنل مشاور']];for(const [href,label] of targets){let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}link.textContent=label;link.classList.add('btn','role-panel-link');}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();
+      (()=>{const norm=v=>(v||'').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/\s+/g,' ').trim();
+        const cleanEducationFooter=()=>{
+          const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
+          document.querySelectorAll('body *').forEach(el=>{
+            if(el.closest('#education'))return;
+            const t=norm(el.textContent);
+            if(!t||el.children.length)return;
+            if(exact.test(t)){
+              const target=el.closest('a,button,li')||el;
+              if(!target.closest('#education')) target.remove();
+            }
+          });
+          document.querySelectorAll('footer .footer-menu,footer .footer-links').forEach(el=>el.remove());
+        };
+        const ensurePanels=()=>{
+          const nav=document.querySelector('header nav.links');if(!nav)return;
+          const targets=[['/admin.html','پنل مدیریت'],['/admin-v5.html','پنل مالی'],['/consultant-panel.html','پنل مشاور']];
+          for(const [href,label] of targets){
+            let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});
+            if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}
+            link.textContent=label;link.classList.add('btn','role-panel-link');
+          }
+        };
+        const run=()=>{cleanEducationFooter();ensurePanels();};
+        if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+        new MutationObserver(()=>{cleanEducationFooter();}).observe(document.documentElement,{subtree:true,childList:true});
+      })();
       </script>`;
       if (html.includes("</body>")) html = html.replace("</body>", navigationFix + "</body>");
       else html += navigationFix;
