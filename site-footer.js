@@ -62,6 +62,10 @@
     });
     document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
 
+    // Keep exactly one panel-access block on every page that has a footer.
+    const panelBlocks=[...document.querySelectorAll('footer .footer-panels, body > .footer-panels')];
+    if(panelBlocks.length>1) panelBlocks.slice(1).forEach(el=>el.remove());
+
     const isHome=location.pathname==='/' || location.pathname==='/index.html';
     if(isHome){
       const footer=document.querySelector('footer.professional-footer, footer');
