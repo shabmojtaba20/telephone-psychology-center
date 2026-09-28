@@ -73,7 +73,7 @@
       if(footer){
         const section=document.createElement('div');
         section.className='footer-panels';
-        section.innerHTML='<div class="footer-panel-title">دسترسی پنل‌ها</div><nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>';
+        section.innerHTML='<div class="footer-panel-title">دسترسی پنل‌ها</div><nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a class="panel-admin" href="/admin.html">پنل مدیریت</a><a class="panel-finance" href="/admin-v5.html">پنل مالی</a><a class="panel-consultant" href="/consultant-panel.html">پنل مشاور</a></nav>';
         const container=footer.querySelector('.c')||footer;
         const bottom=footer.querySelector('.footer-bottom');
         container.insertBefore(section,bottom||null);
