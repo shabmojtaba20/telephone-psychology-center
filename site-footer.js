@@ -1,14 +1,9 @@
 (function(){
   function add(){
-    // On the main site only, remove the two footer blocks requested by the owner.
-    // This does not touch the homepage education section (#education).
-    if(location.pathname==='/' || location.pathname==='/index.html'){
-      document.querySelectorAll('footer .footer-panel-links').forEach(el=>el.remove());
-    }
-    // Remove education/workshop menu items from the main footer.
+    // Keep the footer panel-access links; remove only education/workshop items from the main footer.\n    // Remove education/workshop menu items from the main footer.
     document.querySelectorAll('footer a, footer button, footer li, footer .footer-menu, footer .footer-links').forEach(el=>{
       const t=(el.textContent||'').replace(/\s+/g,' ').trim();
-      if(/آموزش|کارگاه/.test(t) && !el.closest('.footer-panel-links')) el.remove();
+      if(/آموزش|کارگاه/.test(t)) el.remove();
     });
     const blocks=[...document.querySelectorAll('.footer-panel-links')];
     if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.remove());
