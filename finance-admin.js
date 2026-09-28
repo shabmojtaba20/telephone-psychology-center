@@ -68,17 +68,8 @@
     const v={zarinpal_enabled:$('zarinEnabled').checked,zarinpal_merchant_id:$('zarinId').value.trim(),iran_dargah_enabled:$('iranEnabled').checked,iran_dargah_merchant_id:$('iranId').value.trim(),parsian_enabled:$('parsianEnabled').checked,parsian_terminal_id:$('parsianId').value.trim(),pasargad_enabled:$('pasargadEnabled').checked,pasargad_terminal_id:$('pasargadId').value.trim(),updated_at:new Date().toISOString()};
     const r=await db.from('center_financial_settings').update(v).eq('id',1); if(r.error)note(r.error.message,true);else note('تنظیمات درگاه‌ها ذخیره شد');
   }
-  async function approveReceipt(id,status){
-    const r=await db.from('payment_receipts').update({status,reviewed_at:new Date().toISOString(),reviewed_by:(await db.auth.getUser()).data.user?.id||null}).eq('id',id);
-    if(r.error)return note(r.error.message,true);
-    if(status==='approved'){
-      const rec=await db.from('payment_receipts').select('*').eq('id',id).single(); if(rec.error)return note(rec.error.message,true);
-      const a=await db.from('appointments').update({payment_status:'paid',paid_at:new Date().toISOString()}).eq('id',rec.data.appointment_id); if(a.error)return note(a.error.message,true);
-      const tr=await db.from('finance_transactions').insert({appointment_id:rec.data.appointment_id,user_id:rec.data.user_id,transaction_type:'income',category:'consultation',amount:rec.data.amount,currency:'IRR',payment_method:'card_to_card',gateway:'card_to_card',status:'paid',description:'تأیید رسید کارت‌به‌کارت',occurred_at:new Date().toISOString()});
-      if(tr.error)return note('رسید تأیید شد ولی ثبت تراکنش انجام نشد: '+tr.error.message,true); note('رسید تأیید شد و پرداخت در مالی ثبت شد');
-    }else note('رسید رد شد'); refreshAll();
-  }
-  async function settleInvoice(id){const r=await db.from('invoices').update({status:'paid',paid_at:new Date().toISOString()}).eq('id',id);if(r.error)note(r.error.message,true);else{note('فاکتور تسویه شد');refreshAll()}}
+  async function approveReceipt(id,status){const noteValue=prompt(status==='approved'?'یادداشت تأیید (اختیاری):':'علت رد رسید:')||null;if(status==='rejected'&&!noteValue)return note('برای رد رسید، علت را وارد کنید.',true);const tracking=prompt('کد پیگیری (اختیاری):')||null;const r=await db.rpc('review_payment_receipt',{p_receipt_id:id,p_decision:status,p_note:noteValue,p_tracking_code:tracking});if(r.error)return note(r.error.message,true);note(status==='approved'?'رسید تأیید شد؛ تراکنش مالی و صورتحساب ثبت شد.':'رسید رد شد.');refreshAll()}
+async function settleInvoice(id){const r=await db.from('invoices').update({status:'paid',paid_at:new Date().toISOString()}).eq('id',id);if(r.error)note(r.error.message,true);else{note('فاکتور تسویه شد');refreshAll()}}
   function exportTransactions(){const rows=[['تاریخ','نوع','روش پرداخت','درگاه','مبلغ','وضعیت','پیگیری']];document.querySelectorAll('#fxTransactions tr').forEach(tr=>rows.push([...tr.children].map(td=>td.textContent.trim())));const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='finance-report.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
