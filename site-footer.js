@@ -16,7 +16,9 @@
     };
     cleanEducationFooter();
     const blocks=[...document.querySelectorAll('.footer-panel-links')];
-    if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.remove());
+    if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.closest('.footer')?.remove()||x.remove());
+    const panelSections=[...document.querySelectorAll('footer, body > .footer')].filter(el=>norm(el.textContent).includes('دسترسی پنل‌ها'));
+    if(panelSections.length>1) panelSections.slice(0,-1).forEach(el=>el.remove());
     if(document.querySelector('.site-credit')) return;
     const f=document.createElement('footer');
     f.className='site-credit'; f.dir='rtl';
