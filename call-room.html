@@ -73,18 +73,21 @@ async function prepareRoom(){
  if(!row?.room_key)throw new Error('کلید اتاق تماس دریافت نشد.');
  return {room_key:row.room_key,room_id:row.room_id||row.id,status:row.room_status||row.status};
 }
-async function openSignal(session){
- const proto='call-bearer.'+session.access_token;
- const scheme=location.protocol==='https:'?'wss':'ws';
- const generation=++signalGeneration;
- const old=ws;
- if(old){try{old.onclose=null;old.close()}catch{}}
- const socket=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
- ws=socket;
- socket.onopen=()=>{if(generation!==signalGeneration)return;status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');};
- socket.onerror=()=>{if(generation!==signalGeneration)return;status('اتصال ارتباطی برقرار نشد؛ در حال تلاش مجدد...','err')};
- socket.onclose=()=>{if(generation!==signalGeneration)return;if(joined&&!closing)reconnectSignal()};
- socket.onmessage=async e=>{if(generation!==signalGeneration)return;
+function openSignal(session){
+ return new Promise((resolve,reject)=>{
+  const proto='call-bearer.'+session.access_token;
+  const scheme=location.protocol==='https:'?'wss':'ws';
+  const generation=++signalGeneration;
+  const old=ws;
+  if(old){try{old.onclose=null;old.close()}catch{}}
+  const socket=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
+  ws=socket;
+  let settled=false;
+  const fail=()=>{if(!settled){settled=true;reject(new Error('signal socket closed'))}};
+  socket.onopen=()=>{if(generation!==signalGeneration)return;settled=true;status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');resolve(true);};
+  socket.onerror=()=>{if(generation!==signalGeneration)return;status('اتصال ارتباطی برقرار نشد؛ در حال تلاش مجدد...','err');fail()};
+  socket.onclose=()=>{if(generation!==signalGeneration)return;fail();if(joined&&!closing)reconnectSignal()};
+  socket.onmessage=async e=>{if(generation!==signalGeneration)return;
    let m;try{m=JSON.parse(e.data)}catch{return}
    if(m.type==='joined'){say(mode==='consultant'?'مشاور · اتاق '+room.room_key:'مراجعه‌کننده · اتاق '+room.room_key);status(m.peers?.length?'طرف مقابل در اتاق است؛ در حال اتصال...':'در اتاق هستید؛ منتظر ورود طرف مقابل...','ok');room.peers=m.peers||[];if(mode==='consultant'){for(const p of (m.peers||[])){await makeOffer(p.id)}}else{for(const p of (m.peers||[])){sendSignal({type:'ready',to:p.id})}}}
    else if(m.type==='peer_joined'){status('طرف مقابل وارد اتاق شد؛ در حال برقراری تصویر...','ok');if(m.peer?.id){if(mode==='consultant')await makeOffer(m.peer.id);else sendSignal({type:'ready',to:m.peer.id})}}
