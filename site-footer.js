@@ -54,15 +54,15 @@
       const links=[...nav.querySelectorAll('a')];
       links.forEach(a=>{
         const href=a.getAttribute('href')||'';
-        a.style.color='#000';
-        a.style.fontWeight='700';
+        a.style.setProperty('color','#000','important');
+        a.style.setProperty('font-weight','800','important');
         a.style.border='1px solid #000';
         a.style.textDecoration='none';
         let icon='⚙️';
         if(href.includes('/admin.html')){
           icon='🛡️';
           a.style.background='#239f40';
-          a.style.color='#000';
+          a.style.setProperty('color','#000','important');
         }else if(href.includes('/admin-v5.html')){
           icon='📊';
           a.style.background='#fff';
