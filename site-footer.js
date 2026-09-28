@@ -68,16 +68,6 @@
     if(blocks.length>1) blocks.slice(0,-1).forEach(x=>x.closest('.footer')?.remove()||x.remove());
     const panelSections=[...document.querySelectorAll('footer, body > .footer')].filter(el=>norm(el.textContent).includes('دسترسی پنل‌ها'));
     if(panelSections.length>1) panelSections.slice(0,-1).forEach(el=>el.remove());
-    if(!document.querySelector('.site-credit')){
-      const f=document.createElement('footer');
-      f.className='site-credit';
-      f.dir='rtl';
-      f.innerHTML='<b>طراح: مهندس مجتبی شبیهی</b><span>کلیه حقوق این سایت برای پدیدآورنده محفوظ است.</span>';
-      const style=document.createElement('style');
-      style.textContent='.site-credit{margin:34px auto 18px;padding:12px 16px;text-align:center;color:#7b8494;font:12px/1.9 Tahoma,Arial,sans-serif}.site-credit b{font-weight:700;color:#5f6878}.site-credit span{display:block}.footer-contact-section{margin-top:20px;padding-top:18px;border-top:1px solid rgba(127,127,127,.18)}.footer-panel-title{font-weight:700;text-align:center;margin-bottom:4px}.footer-contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-top:10px}.footer-contact-item{display:flex;gap:7px;align-items:flex-start;padding:9px 10px;border:1px solid rgba(127,127,127,.18);border-radius:10px;text-decoration:none;color:inherit}.footer-contact-static{cursor:default}.footer-contact-label{font-weight:700;white-space:nowrap}.footer-contact-item:hover{opacity:.82}';
-      document.head.appendChild(style);
-      (document.body||document.documentElement).appendChild(f);
-    }
     loadContacts();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',add); else add();
