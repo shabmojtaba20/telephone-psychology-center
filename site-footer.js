@@ -50,34 +50,35 @@
     }catch(e){console.warn('footer contact load failed',e)}
   }
   function add(){
-    const cleanEducationFooter=()=>{
-      const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
-      document.querySelectorAll('body *').forEach(el=>{
-        if(el.closest('#education')) return;
-        const t=norm(el.textContent);
-        if(!t || el.children.length) return;
-        if(exact.test(t)){
-          const target=el.closest('a,button,li')||el;
-          if(!target.closest('#education')) target.remove();
-        }
-      });
-      document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
-    };
-    cleanEducationFooter();
+    const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
+    document.querySelectorAll('body *').forEach(el=>{
+      if(el.closest('#education')) return;
+      const t=norm(el.textContent);
+      if(!t || el.children.length) return;
+      if(exact.test(t)){
+        const target=el.closest('a,button,li')||el;
+        if(!target.closest('#education')) target.remove();
+      }
+    });
+    document.querySelectorAll('footer .footer-menu, footer .footer-links').forEach(el=>el.remove());
+
     const isHome=location.pathname==='/' || location.pathname==='/index.html';
     if(isHome){
-      document.querySelectorAll('footer .footer-panels').forEach(el=>el.remove());
       const footer=document.querySelector('footer.professional-footer, footer');
       if(footer && !footer.querySelector('.footer-panels')){
         const section=document.createElement('div');
         section.className='footer-panels';
         section.innerHTML='<div class="footer-panel-title">دسترسی پنل‌ها</div><nav class="footer-panel-links" aria-label="دسترسی به پنل‌ها"><a href="/admin.html">پنل مدیریت</a><a href="/admin-v5.html">پنل مالی</a><a href="/consultant-panel.html">پنل مشاور</a></nav>';
+        const container=footer.querySelector('.c')||footer;
         const bottom=footer.querySelector('.footer-bottom');
-        footer.querySelector('.c')?.insertBefore(section,bottom||null);
+        container.insertBefore(section,bottom||null);
       }
     }
-    loadContacts();
+
+    // Contact data is below the fold; load it after the first paint so it never
+    // delays the initial page rendering.
+    const defer=window.requestIdleCallback||((fn)=>setTimeout(fn,1200));
+    defer(()=>loadContacts());
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',add); else add();
-  new MutationObserver(()=>add()).observe(document.documentElement,{subtree:true,childList:true});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',add,{once:true}); else add();
 })();
