@@ -49,6 +49,29 @@
       target.appendChild(section);
     }catch(e){console.warn('footer contact load failed',e)}
   }
+  function applyPanelColors(){
+    document.querySelectorAll('.footer-panel-links').forEach(nav=>{
+      const links=[...nav.querySelectorAll('a')];
+      links.forEach(a=>{
+        const href=a.getAttribute('href')||'';
+        a.style.color='#000!important';
+        a.style.fontWeight='700';
+        a.style.border='1px solid #000';
+        a.style.textDecoration='none';
+        if(href.includes('/admin.html')){
+          a.style.background='#239f40';
+          a.style.color='#000';
+        }else if(href.includes('/admin-v5.html')){
+          a.style.background='#fff';
+          a.style.color='#000';
+        }else if(href.includes('/consultant-panel.html')){
+          a.style.background='#da251d';
+          a.style.color='#000';
+        }
+      });
+    });
+  }
+
   function add(){
     const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
     document.querySelectorAll('body *').forEach(el=>{
@@ -79,6 +102,8 @@
         container.insertBefore(section,bottom||null);
       }
     }
+
+    applyPanelColors();
 
     // Contact data is below the fold; load it after the first paint so it never
     // delays the initial page rendering.
