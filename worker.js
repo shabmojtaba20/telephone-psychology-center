@@ -254,7 +254,7 @@ export default {
         };
         const r=await fetch(sbUrl+"/rest/v1/marketing_sessions?on_conflict=session_key",{
           method:"POST",
-          headers:{"apikey":sbKey,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
           body:JSON.stringify(payload)
         });
         const data=await r.json().catch(()=>null);
@@ -274,7 +274,7 @@ export default {
         const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
         const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
           method:"POST",
-          headers:{"apikey":sbKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"return=minimal"},
           body:JSON.stringify(payload)
         });
         if(!r.ok)return json({error:"event insert failed"},502,{"Cache-Control":"no-store"});
