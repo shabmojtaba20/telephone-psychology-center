@@ -80,17 +80,33 @@ tfoot th{background:#e7e7e7;font-size:13px}
 function closeDocumentDetails(){const m=$('docModal');if(m)m.classList.remove('open')}
 function fmtDate(v){if(!v)return'—';try{return new Date(String(v).length===10?v+'T12:00:00':v).toLocaleDateString('fa-IR')}catch(e){return String(v)}}
 function fmtDateTime(v){if(!v)return'—';try{return new Date(v).toLocaleString('fa-IR')}catch(e){return String(v)}}
-async function showDocumentDetails(id){
- const m=$('docModal'),b=$('docModalBody');if(!m||!b)return;m.classList.add('open');b.innerHTML='<div class="doc-loading">در حال دریافت جزئیات سند...</div>';
- const [d,l,a]=await Promise.all([db.from('finance_documents').select('id,document_no,document_date,document_type,description,reference_type,reference_id,status,total_debit,total_credit,created_by,approved_by,approved_at,posted_by,posted_at,voided_by,voided_at,void_reason,created_at,updated_at').eq('id',id).maybeSingle(),db.from('finance_document_lines').select('line_no,account_id,description,debit,credit,reference').eq('document_id',id).order('line_no'),db.rpc('get_finance_document_audit',{p_document_id:id})]);
- if(d.error||l.error){b.innerHTML='<div class="notice err" style="display:block">خطا در دریافت جزئیات سند: '+esc((d.error||l.error).message)+'</div>';return}
- const doc=d.data||{},lines=l.data||[],audit=a.error?[]:(a.data||[]);let accountsById={};
- if(lines.length){const ids=[...new Set(lines.map(x=>x.account_id).filter(Boolean))];const ar=await db.from('finance_accounts').select('id,account_code,account_name,account_type').in('id',ids);(ar.data||[]).forEach(x=>accountsById[x.id]=x)}
- currentDocumentDetail={doc,lines,accounts:accountsById};
- const lineHtml=lines.map((x,i)=>{const ac=accountsById[x.account_id]||{};return '<tr><td>'+(i+1)+'</td><td>'+esc(ac.account_code||'—')+'</td><td><b>'+esc(ac.account_name||'حساب نامشخص')+'</b></td><td>'+esc(ac.account_type||'')+'</td><td>'+esc(x.description||'—')+'</td><td>'+money(x.debit)+'</td><td>'+money(x.credit)+'</td><td>'+esc(x.reference||'—')+'</td></tr>'}).join('');
- const auditHtml=audit.length?audit.map(x=>'<div class="doc-audit-item"><b>'+esc(x.action||'رویداد')+'</b> — '+fmtDateTime(x.created_at)+(x.note?'<br><span class="muted">'+esc(x.note)+'</span>':'')+'</div>').join(''):'<div class="muted">سابقه حسابرسی ثبت نشده است.</div>';
- const td=lines.reduce((s,x)=>s+Number(x.debit||0),0),tc=lines.reduce((s,x)=>s+Number(x.credit||0),0);
- b.innerHTML='<div class="doc-meta"><div class="doc-meta-item"><span>شماره سند</span><b>'+esc(doc.document_no||'—')+'</b></div><div class="doc-meta-item"><span>تاریخ سند</span><b>'+fmtDate(doc.document_date)+'</b></div><div class="doc-meta-item"><span>نوع سند</span><b>'+esc(documentTypeLabel(doc.document_type))+'</b></div><div class="doc-meta-item"><span>وضعیت</span><b>'+esc(documentStatusLabel(doc.status))+'</b></div><div class="doc-meta-item"><span>جمع بدهکار</span><b class="debit">'+money(doc.total_debit)+' تومان</b></div><div class="doc-meta-item"><span>جمع بستانکار</span><b class="credit">'+money(doc.total_credit)+' تومان</b></div><div class="doc-meta-item"><span>نوع/مرجع</span><b>'+esc(doc.reference_type||'—')+'</b></div><div class="doc-meta-item"><span>ایجاد</span><b>'+fmtDateTime(doc.created_at)+'</b></div></div><div class="hint"><b>شرح سند:</b> '+esc(doc.description||'—')+(doc.void_reason?'<br><b>دلیل ابطال:</b> '+esc(doc.void_reason):'')+'</div><div class="table"><table class="doc-detail-table"><thead><tr><th>ردیف</th><th>کد</th><th>حساب</th><th>نوع حساب</th><th>شرح ردیف</th><th>بدهکار</th><th>بستانکار</th><th>مرجع</th></tr></thead><tbody>'+lineHtml+'</tbody><tfoot><tr><td colspan="5">جمع</td><td>'+money(td)+'</td><td>'+money(tc)+'</td><td></td></tr></tfoot></table></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0"><button class="btn green" type="button" onclick="exportCurrentDocumentExcel()">📊 خروجی Excel ریز سند</button><button class="btn" type="button" onclick="printCurrentDocument()">🖨️ چاپ سند</button></div><div class="doc-audit"><h3>🧾 سابقه حسابرسی سند</h3>'+auditHtml+'</div>';
+async async function showDocumentDetails(id){
+ const m=$('docModal'),b=$('docModalBody');if(!m||!b)return;
+ m.classList.add('open');b.innerHTML='<div class="doc-loading">در حال دریافت جزئیات سند...</div>';
+ try{
+  const d=await db.from('finance_documents').select('id,document_no,document_date,document_type,description,reference_type,reference_id,status,total_debit,total_credit,created_by,approved_by,approved_at,posted_by,posted_at,voided_by,voided_at,void_reason,created_at,updated_at').eq('id',id).maybeSingle();
+  if(d.error)throw new Error('خطا در اطلاعات اصلی سند: '+d.error.message);
+  if(!d.data)throw new Error('سند موردنظر پیدا نشد.');
+  const l=await db.from('finance_document_lines').select('line_no,account_id,description,debit,credit,reference').eq('document_id',id).order('line_no');
+  if(l.error)throw new Error('خطا در ردیف‌های سند: '+l.error.message);
+  const a=await db.rpc('get_finance_document_audit',{p_document_id:id});
+  const doc=d.data,lines=l.data||[],audit=a.error?[]:(a.data||[]);
+  let accountsById={};
+  if(lines.length){
+   const ids=[...new Set(lines.map(x=>x.account_id).filter(Boolean))];
+   if(ids.length){
+    const ar=await db.from('finance_accounts').select('id,account_code,account_name,account_type').in('id',ids);
+    if(!ar.error)(ar.data||[]).forEach(x=>accountsById[x.id]=x);
+   }
+  }
+  currentDocumentDetail={doc,lines,accounts:accountsById};
+  const lineHtml=lines.map((x,i)=>{const ac=accountsById[x.account_id]||{};return '<tr><td>'+(i+1)+'</td><td>'+esc(ac.account_code||'—')+'</td><td><b>'+esc(ac.account_name||'حساب نامشخص')+'</b></td><td>'+esc(ac.account_type||'')+'</td><td>'+esc(x.description||'—')+'</td><td>'+money(x.debit)+'</td><td>'+money(x.credit)+'</td><td>'+esc(x.reference||'—')+'</td></tr>'}).join('');
+  const auditHtml=audit.length?audit.map(x=>'<div class="doc-audit-item"><b>'+esc(x.action||'رویداد')+'</b> — '+fmtDateTime(x.created_at)+(x.note?'<br><span class="muted">'+esc(x.note)+'</span>':'')+'</div>').join(''):'<div class="muted">سابقه حسابرسی ثبت نشده است.</div>';
+  const td=lines.reduce((s,x)=>s+Number(x.debit||0),0),tc=lines.reduce((s,x)=>s+Number(x.credit||0),0);
+  b.innerHTML='<div class="doc-meta"><div class="doc-meta-item"><span>شماره سند</span><b>'+esc(doc.document_no||'—')+'</b></div><div class="doc-meta-item"><span>تاریخ سند</span><b>'+fmtDate(doc.document_date)+'</b></div><div class="doc-meta-item"><span>نوع سند</span><b>'+esc(documentTypeLabel(doc.document_type))+'</b></div><div class="doc-meta-item"><span>وضعیت</span><b>'+esc(documentStatusLabel(doc.status))+'</b></div><div class="doc-meta-item"><span>جمع بدهکار</span><b class="debit">'+money(doc.total_debit)+' تومان</b></div><div class="doc-meta-item"><span>جمع بستانکار</span><b class="credit">'+money(doc.total_credit)+' تومان</b></div><div class="doc-meta-item"><span>نوع/مرجع</span><b>'+esc(doc.reference_type||'—')+'</b></div><div class="doc-meta-item"><span>ایجاد</span><b>'+fmtDateTime(doc.created_at)+'</b></div></div><div class="hint"><b>شرح سند:</b> '+esc(doc.description||'—')+(doc.void_reason?'<br><b>دلیل ابطال:</b> '+esc(doc.void_reason):'')+'</div><div class="table"><table class="doc-detail-table"><thead><tr><th>ردیف</th><th>کد</th><th>حساب</th><th>نوع حساب</th><th>شرح ردیف</th><th>بدهکار</th><th>بستانکار</th><th>مرجع</th></tr></thead><tbody>'+lineHtml+'</tbody><tfoot><tr><td colspan="5">جمع</td><td>'+money(td)+'</td><td>'+money(tc)+'</td><td></td></tr></tfoot></table></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin:16px 0"><button class="btn green" type="button" onclick="exportCurrentDocumentExcel()">📊 خروجی Excel ریز سند</button><button class="btn" type="button" onclick="printCurrentDocument()">🖨️ چاپ سند</button></div><div class="doc-audit"><h3>🧾 سابقه حسابرسی سند</h3>'+auditHtml+'</div>';
+ }catch(e){
+  b.innerHTML='<div class="notice err" style="display:block">خطا در دریافت جزئیات سند: '+esc(e?.message||String(e))+'</div>';
+ }
 }
 function getFilteredDocumentRows(){
  const from=String($('docFrom').value||'').slice(0,10),to=String($('docTo').value||'').slice(0,10);
