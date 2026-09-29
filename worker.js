@@ -37,8 +37,8 @@ async function getUserId(token, env){
 }
 
 async function sbSelect(env, path){
-  const key=env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+  const key=env.supabase_service_role_key;
+  if(!key) throw new Error("supabase_service_role_key is not configured");
   const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
   const r=await fetch(sbUrl+"/rest/v1/"+path,{headers:{"apikey":key,"Authorization":"Bearer "+key}});
   const data=await r.json().catch(()=>null);
@@ -223,13 +223,13 @@ export default {
         if(diff!==0) return new Response("",{status:403});
 
         const status=String(body.get("CallStatus")||""), duration=Number(body.get("CallDuration")||0);
-        if(!env.SUPABASE_SERVICE_ROLE_KEY) return new Response("",{status:500});
+        if(!env.supabase_service_role_key) return new Response("",{status:500});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
         const finalStatus=["completed","failed","busy","no-answer","canceled"].includes(status);
         const patch={status:status==="completed"?"completed":finalStatus?"failed":"calling",duration_seconds:duration||null,updated_at:new Date().toISOString()};
         if(finalStatus)patch.ended_at=new Date().toISOString();
         await fetch(sbUrl+"/rest/v1/consultant_call_sessions?id=eq."+encodeURIComponent(sessionId),{
-          method:"PATCH",headers:{"apikey":env.SUPABASE_SERVICE_ROLE_KEY,"Authorization":"Bearer "+env.SUPABASE_SERVICE_ROLE_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(patch)
+          method:"PATCH",headers:{"apikey":env.supabase_service_role_key,"Authorization":"Bearer "+env.supabase_service_role_key,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(patch)
         });
         return new Response("",{status:204});
       } catch { return new Response("",{status:204}); }
@@ -238,13 +238,13 @@ export default {
     if (path === "/api/marketing/health" && request.method === "GET") {
       try {
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"";
+        const sbKey=env.supabase_service_role_key||env.SUPABASE_PUBLISHABLE_KEY||"";
         if(!sbKey) return json({ok:false,error:"SUPABASE key is not configured"},503,{"Cache-Control":"no-store"});
         const r=await fetch(sbUrl+"/rest/v1/marketing_sessions?select=id&limit=1",{
           headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey}
         });
         const data=await r.text();
-        return json({ok:r.ok,status:r.status,key_type:env.SUPABASE_SERVICE_ROLE_KEY?"service_role":"publishable",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
+        return json({ok:r.ok,status:r.status,key_type:env.supabase_service_role_key?"service_role":"publishable",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
       } catch(e) {
         return json({ok:false,error:String(e?.message||e)},502,{"Cache-Control":"no-store"});
       }
@@ -256,7 +256,7 @@ export default {
         const sessionKey = String(body?.session_key || "").slice(0,200);
         if (!sessionKey) return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+        const sbKey=env.supabase_service_role_key||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={
           id:body?.id||crypto.randomUUID(),session_key:sessionKey,
           source:body?.source?String(body.source).slice(0,200):null,
@@ -285,7 +285,7 @@ export default {
         const eventName=String(body?.event_name||"").slice(0,100);
         if(!sessionId||!eventName)return json({error:"session_id and event_name required"},400,{"Cache-Control":"no-store"});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+        const sbKey=env.supabase_service_role_key||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
         const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
           method:"POST",
