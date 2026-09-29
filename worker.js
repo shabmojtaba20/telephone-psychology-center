@@ -29,7 +29,7 @@ async function getBearer(request){
 async function getUserId(token, env){
   if(!token) return null;
   const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-  const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+  const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
   const r=await fetch(sbUrl+"/auth/v1/user",{headers:{"apikey":sbKey,"Authorization":"Bearer "+token}});
   if(!r.ok)return null;
   const u=await r.json().catch(()=>null);
@@ -241,7 +241,7 @@ export default {
         const sessionKey = String(body?.session_key || "").slice(0,200);
         if (!sessionKey) return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-        const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={
           id:body?.id||crypto.randomUUID(),session_key:sessionKey,
           source:body?.source?String(body.source).slice(0,200):null,
@@ -270,7 +270,7 @@ export default {
         const eventName=String(body?.event_name||"").slice(0,100);
         if(!sessionId||!eventName)return json({error:"session_id and event_name required"},400,{"Cache-Control":"no-store"});
         const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
-        const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
         const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
           method:"POST",
