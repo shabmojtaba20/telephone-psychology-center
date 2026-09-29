@@ -69,8 +69,26 @@ async function navigate(page,button){
 window.toggleAdminGroup=toggleGroup;
 window.adminNavTo=navigate;
 
+function ensureMarketingModule(nav){
+  const module=document.getElementById('marketingDashboard');
+  if(module){
+    module.classList.add('section');
+    module.classList.remove('panel');
+  }
+  const reports=[...nav.querySelectorAll('.group')].find(g=>g.textContent.includes('گزارش‌ها'));
+  if(reports && !reports.querySelector('[data-page="marketingDashboard"]')){
+    const sub=reports.querySelector('.sub');
+    if(sub){
+      const b=document.createElement('button');
+      b.type='button'; b.dataset.page='marketingDashboard';
+      b.textContent='📣 داشبورد بازاریابی';
+      sub.appendChild(b);
+    }
+  }
+}
 function init(){
   const nav=document.querySelector('.nav');if(!nav)return;
+  ensureMarketingModule(nav);
   if(!document.getElementById('admin-nav-v8-style')){
     const s=document.createElement('style');s.id='admin-nav-v8-style';
     s.textContent='.nav .group>.sub{display:none!important;visibility:hidden!important;opacity:0!important;height:0!important;max-height:0!important;overflow:hidden!important}.nav .group.open>.sub,.nav .group.is-open>.sub{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important}.nav .group>.group-title{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer}.nav .sub button[data-page]{pointer-events:auto!important;touch-action:manipulation;position:relative;z-index:2}';
