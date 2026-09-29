@@ -51,26 +51,30 @@
 </footer><div id="authModal" class="modal hidden"><div class="modal-card"><div class="modal-head"><h2>حساب کاربری</h2><button class="close" id="closeAuth">بستن</button></div><div id="loginBox"><label>ایمیل یا شماره موبایل</label><input id="loginIdentifier" type="text" inputmode="email" autocomplete="username" placeholder="ایمیل یا 09xxxxxxxxx"><label>رمز عبور</label><input id="loginPassword" type="password" autocomplete="current-password"><button class="btn" id="loginBtn">ورود</button><p>حساب ندارید؟ <button id="showSignup">ثبت‌نام</button></p></div><div id="signupBox" class="hidden"><label>نام و نام خانوادگی</label><input id="signupName"><label>شماره موبایل</label><input id="signupPhone" inputmode="tel" placeholder="09xxxxxxxxx"><label>ایمیل <span class="muted">(اختیاری)</span></label><input id="signupEmail" type="email"><label>رمز عبور</label><input id="signupPassword" type="password"><label>تکرار رمز عبور</label><input id="signupPassword2" type="password"><button class="btn" id="signupBtn">ثبت‌نام</button><p><button id="showLogin">بازگشت به ورود</button></p></div><div id="authMsg"></div></div></div><script>
 (function(){
 const K='mp_session_v1',IK='mp_session_id_v1';
+const SB='https://aserkyiwwyggtixckjsv.supabase.co',KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 function id(){return crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2))}
-function esc(v){return String(v||'').slice(0,500)}
 let key=localStorage.getItem(K);if(!key){key=id();localStorage.setItem(K,key)}
 let sessionId=localStorage.getItem(IK)||null;
-const q=new URLSearchParams(location.search), path=location.pathname||'/';
+const q=new URLSearchParams(location.search),path=location.pathname||'/';
+const headers={'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'};
 const payload={id:sessionId||id(),session_key:key,source:q.get('utm_source'),medium:q.get('utm_medium'),campaign:q.get('utm_campaign'),content:q.get('utm_content'),term:q.get('utm_term'),landing_path:path,referrer:document.referrer||null};
+async function directSession(){
+ const r=await fetch(SB+'/rest/v1/marketing_sessions?on_conflict=session_key',{method:'POST',headers:{...headers,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(payload),keepalive:true});
+ if(!r.ok)throw new Error('session '+r.status);
+ const rows=await r.json(),row=Array.isArray(rows)?rows[0]:rows;
+ if(!row?.id)throw new Error('session id missing');
+ sessionId=row.id;localStorage.setItem(IK,row.id);return row.id;
+}
 window.marketingTrack=async function(event,extra){
  try{
-  if(!sessionId)return;
+  if(!sessionId)await directSession();
   const body=Object.assign({session_id:sessionId,event_name:event,page_path:path,metadata:{}},extra||{});
-  const r=await fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok)throw new Error('marketing event '+r.status);
+  const r=await fetch(SB+'/rest/v1/marketing_events',{method:'POST',headers:{...headers,'Prefer':'return=minimal'},body:JSON.stringify(body),keepalive:true});
+  if(!r.ok)throw new Error('event '+r.status);
  }catch(e){console.warn('[marketing]',e);}
 };
-fetch('/api/marketing/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-.then(r=>{if(!r.ok)throw new Error('marketing session '+r.status);return r.json()})
-.then(row=>{if(row?.id){sessionId=row.id;localStorage.setItem(IK,row.id);return marketingTrack('page_view')}})
-.catch(e=>console.warn('[marketing]',e));
-})();
-</script><script type="module">import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';const s=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'),$=id=>document.getElementById(id);let selected=null,session=null,bookingOrderId=null;let marketingBookingTracked=false;const authMsg=(t,ok=false)=>{$('authMsg').className='msg '+(ok?'ok':'err');$('authMsg').textContent=t};const normalizePhone=v=>{v=v.trim().replace(/[\s-]/g,'');if(v.startsWith('09'))return '+98'+v.slice(1);if(v.startsWith('9')&&v.length===10)return '+98'+v;if(v.startsWith('0098'))return '+'+v.slice(2);if(v.startsWith('+98'))return v;return v};const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);const faDateTime=v=>{if(!v)return'';const d=new Date(v);return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Tehran'}).format(d)};let serviceSlides=[],serviceSlideIndex=0,serviceTimer=null;
+directSession().then(()=>marketingTrack('page_view')).catch(e=>console.warn('[marketing]',e));
+})();</script><script type="module">import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';const s=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'),$=id=>document.getElementById(id);let selected=null,session=null,bookingOrderId=null;let marketingBookingTracked=false;const authMsg=(t,ok=false)=>{$('authMsg').className='msg '+(ok?'ok':'err');$('authMsg').textContent=t};const normalizePhone=v=>{v=v.trim().replace(/[\s-]/g,'');if(v.startsWith('09'))return '+98'+v.slice(1);if(v.startsWith('9')&&v.length===10)return '+98'+v;if(v.startsWith('0098'))return '+'+v.slice(2);if(v.startsWith('+98'))return v;return v};const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);const faDateTime=v=>{if(!v)return'';const d=new Date(v);return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Tehran'}).format(d)};let serviceSlides=[],serviceSlideIndex=0,serviceTimer=null;
 function renderServiceSlider(){
   const track=$('servicesList'),dots=$('servicesDots'),count=$('servicesCount');
   if(!track)return;
