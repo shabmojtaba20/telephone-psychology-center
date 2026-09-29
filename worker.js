@@ -304,62 +304,7 @@ export default {
       const headers = new Headers(response.headers);
       headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       headers.set("Pragma", "no-cache");
-      const type = headers.get("Content-Type") || "text/html; charset=utf-8";
-      if (!response.ok || !type.toLowerCase().includes("text/html")) {
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-      }
-      let html = await response.text();
-
-      // Remove the legacy static footer panel block from older index.html builds.
-      // The live colored panel block is created by site-footer.js, so this only
-      // strips the old hard-coded copy before the HTML reaches the browser.
-            const legacyStart = html.indexOf('<div class="footer-panels">');
-      if (legacyStart >= 0) {
-        const legacyEnd = html.indexOf('</nav>', legacyStart);
-        const legacyClose = legacyEnd >= 0 ? html.indexOf('</div>', legacyEnd) : -1;
-        if (legacyClose >= 0) {
-          html = html.slice(0, legacyStart) + html.slice(legacyClose + 6);
-        }
-      }
-
-      const navigationFix = `<style>
-        header .links a[href="/admin.html"],header .links a[href="/consultant-panel.html"],header .links a[href="/admin-v5.html"]{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:13px;padding:7px 10px;border-radius:9px}
-        header .links{flex-wrap:wrap}
-        .footer .footer-menu,.footer .footer-links{display:none!important}.footer-panel-links{display:flex!important;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:18px}.footer-panel-links a{display:inline-flex!important;align-items:center;justify-content:center;background:#fff;color:#344054!important;text-decoration:none;border:1px solid #d0d5dd;border-radius:8px;padding:6px 11px;font-size:12px;min-width:92px}.footer-panel-links a[href="/admin.html"]{background:#2563eb;color:#fff!important;border-color:#2563eb}
-        @media(max-width:700px){header .nav{align-items:flex-start;flex-direction:column;padding:10px 0}header .links{width:100%;justify-content:flex-start;gap:8px}header .links a{display:inline-flex!important;align-items:center;white-space:nowrap;font-size:12px;padding:6px 9px}header .links #accountBtn{display:inline-flex!important;font-size:12px;padding:6px 9px}}
-      </style><script>
-      (()=>{const norm=v=>(v||'').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/\s+/g,' ').trim();
-        const cleanEducationFooter=()=>{
-          const exact=/مطالب آموزشی\s*و\s*کارگاه(?:ها|‌ها)?/;
-          document.querySelectorAll('body *').forEach(el=>{
-            if(el.closest('#education'))return;
-            const t=norm(el.textContent);
-            if(!t||el.children.length)return;
-            if(exact.test(t)){
-              const target=el.closest('a,button,li')||el;
-              if(!target.closest('#education')) target.remove();
-            }
-          });
-          document.querySelectorAll('footer .footer-menu,footer .footer-links').forEach(el=>el.remove());
-        };
-        const ensurePanels=()=>{
-          const nav=document.querySelector('header nav.links');if(!nav)return;
-          const targets=[['/admin.html','پنل مدیریت'],['/admin-v5.html','پنل مالی'],['/consultant-panel.html','پنل مشاور']];
-          for(const [href,label] of targets){
-            let link=[...nav.querySelectorAll('a')].find(a=>{try{return new URL(a.getAttribute('href'),location.href).pathname===href}catch{return false}});
-            if(!link){link=document.createElement('a');link.href=href;nav.appendChild(link);}
-            link.textContent=label;link.classList.add('btn','role-panel-link');
-          }
-        };
-        const run=()=>{cleanEducationFooter();ensurePanels();};
-        if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
-        new MutationObserver(()=>{cleanEducationFooter();}).observe(document.documentElement,{subtree:true,childList:true});
-      })();
-      </script>`;
-      if (html.includes("</body>")) html = html.replace("</body>", navigationFix + "</body>");
-      else html += navigationFix;
-      headers.set("Content-Length", String(new TextEncoder().encode(html).length));
-      return new Response(html, { status: response.status, statusText: response.statusText, headers });
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
 
     if (path === "/zarinpal-callback") {
