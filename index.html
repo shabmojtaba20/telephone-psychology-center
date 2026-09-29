@@ -61,12 +61,13 @@ window.marketingTrack=async function(event,extra){
  try{
   if(!sessionId)return;
   const body=Object.assign({session_id:sessionId,event_name:event,page_path:path,metadata:{}},extra||{});
-  const r=await fetch('https://aserkyiwwyggtixckjsv.supabase.co/rest/v1/marketing_events',{method:'POST',headers:{'apikey':'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX','Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)});
+  const r=await fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error('marketing event '+r.status);
  }catch(e){console.warn('[marketing]',e);}
 };
-fetch('https://aserkyiwwyggtixckjsv.supabase.co/rest/v1/marketing_sessions?on_conflict=session_key',{method:'POST',headers:{'apikey':'sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX','Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)})
-.then(r=>{if(!r.ok)throw new Error('marketing session '+r.status);sessionId=payload.id;localStorage.setItem(IK,sessionId);return marketingTrack('page_view')})
+fetch('/api/marketing/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+.then(r=>{if(!r.ok)throw new Error('marketing session '+r.status);return r.json()})
+.then(row=>{if(row?.id){sessionId=row.id;localStorage.setItem(IK,row.id);return marketingTrack('page_view')}})
 .catch(e=>console.warn('[marketing]',e));
 })();
 </script><script type="module">import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';const s=createClient('https://aserkyiwwyggtixckjsv.supabase.co','sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX'),$=id=>document.getElementById(id);let selected=null,session=null,bookingOrderId=null;let marketingBookingTracked=false;const authMsg=(t,ok=false)=>{$('authMsg').className='msg '+(ok?'ok':'err');$('authMsg').textContent=t};const normalizePhone=v=>{v=v.trim().replace(/[\s-]/g,'');if(v.startsWith('09'))return '+98'+v.slice(1);if(v.startsWith('9')&&v.length===10)return '+98'+v;if(v.startsWith('0098'))return '+'+v.slice(2);if(v.startsWith('+98'))return v;return v};const isEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);const faDateTime=v=>{if(!v)return'';const d=new Date(v);return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Tehran'}).format(d)};let serviceSlides=[],serviceSlideIndex=0,serviceTimer=null;
