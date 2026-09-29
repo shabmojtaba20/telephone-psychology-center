@@ -235,6 +235,55 @@ export default {
       } catch { return new Response("",{status:204}); }
     }
 
+    if (path === "/api/marketing/session" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const sessionKey = String(body?.session_key || "").slice(0,200);
+        if (!sessionKey) return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
+        const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY;
+        if(!sbKey) return json({error:"marketing backend not configured"},503,{"Cache-Control":"no-store"});
+        const payload={
+          id:body?.id||crypto.randomUUID(),session_key:sessionKey,
+          source:body?.source?String(body.source).slice(0,200):null,
+          medium:body?.medium?String(body.medium).slice(0,200):null,
+          campaign:body?.campaign?String(body.campaign).slice(0,200):null,
+          content:body?.content?String(body.content).slice(0,200):null,
+          term:body?.term?String(body.term).slice(0,200):null,
+          landing_path:body?.landing_path?String(body.landing_path).slice(0,500):"/",
+          referrer:body?.referrer?String(body.referrer).slice(0,1000):null
+        };
+        const r=await fetch(sbUrl+"/rest/v1/marketing_sessions?on_conflict=session_key",{
+          method:"POST",
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
+          body:JSON.stringify(payload)
+        });
+        const data=await r.json().catch(()=>null);
+        if(!r.ok)return json({error:"session insert failed"},502,{"Cache-Control":"no-store"});
+        return json({id:Array.isArray(data)?data[0]?.id:data?.id},200,{"Cache-Control":"no-store"});
+      } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
+    }
+
+    if (path === "/api/marketing/event" && request.method === "POST") {
+      try {
+        const body=await request.json();
+        const sessionId=String(body?.session_id||"");
+        const eventName=String(body?.event_name||"").slice(0,100);
+        if(!sessionId||!eventName)return json({error:"session_id and event_name required"},400,{"Cache-Control":"no-store"});
+        const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY;
+        if(!sbKey)return json({error:"marketing backend not configured"},503,{"Cache-Control":"no-store"});
+        const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
+        const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
+          method:"POST",
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+          body:JSON.stringify(payload)
+        });
+        if(!r.ok)return json({error:"event insert failed"},502,{"Cache-Control":"no-store"});
+        return json({ok:true},200,{"Cache-Control":"no-store"});
+      } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
+    }
+
     if (path === "/admin-professional.html") {
       const response = await env.ASSETS.fetch(new Request(new URL("/admin-professional.html", url), request));
       const headers = new Headers(response.headers);
