@@ -235,6 +235,21 @@ export default {
       } catch { return new Response("",{status:204}); }
     }
 
+    if (path === "/api/marketing/health" && request.method === "GET") {
+      try {
+        const sbUrl=env.SUPABASE_URL||"https://aserkyiwwyggtixckjsv.supabase.co";
+        const sbKey=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_PUBLISHABLE_KEY||"";
+        if(!sbKey) return json({ok:false,error:"SUPABASE key is not configured"},503,{"Cache-Control":"no-store"});
+        const r=await fetch(sbUrl+"/rest/v1/marketing_sessions?select=id&limit=1",{
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey}
+        });
+        const data=await r.text();
+        return json({ok:r.ok,status:r.status,key_type:env.SUPABASE_SERVICE_ROLE_KEY?"service_role":"publishable",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
+      } catch(e) {
+        return json({ok:false,error:String(e?.message||e)},502,{"Cache-Control":"no-store"});
+      }
+    }
+
     if (path === "/api/marketing/session" && request.method === "POST") {
       try {
         const body = await request.json();
@@ -258,7 +273,7 @@ export default {
           body:JSON.stringify(payload)
         });
         const data=await r.json().catch(()=>null);
-        if(!r.ok)return json({error:"session insert failed"},502,{"Cache-Control":"no-store"});
+        if(!r.ok)return json({error:"session insert failed",status:r.status,detail:typeof data==="string"?data:String(data?.message||data?.error||"")},502,{"Cache-Control":"no-store"});
         return json({id:Array.isArray(data)?data[0]?.id:data?.id},200,{"Cache-Control":"no-store"});
       } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
     }
@@ -277,7 +292,7 @@ export default {
           headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"return=minimal"},
           body:JSON.stringify(payload)
         });
-        if(!r.ok)return json({error:"event insert failed"},502,{"Cache-Control":"no-store"});
+        if(!r.ok){const detail=await r.text().catch(()=>"" );return json({error:"event insert failed",status:r.status,detail:detail.slice(0,500)},502,{"Cache-Control":"no-store"});}
         return json({ok:true},200,{"Cache-Control":"no-store"});
       } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
     }
