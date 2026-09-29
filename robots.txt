@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://telephone-psychology-center.shabmojtaba20.workers.dev/sitemap.xml
