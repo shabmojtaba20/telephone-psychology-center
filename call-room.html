@@ -108,7 +108,9 @@ function openSignal(session){
   const socket=new WebSocket(scheme+'://'+location.host+'/api/call-signal/'+encodeURIComponent(room.room_key),[proto]);
   ws=socket;
   let settled=false;
-  const fail=(err)=>{if(!settled){clearTimeout(handshakeTimer);settled=true;reject(err||new Error('signal socket closed'))}};
+  let handshakeTimer=null;
+  const fail=(err)=>{if(!settled){if(handshakeTimer)clearTimeout(handshakeTimer);settled=true;reject(err||new Error('signal socket closed'))}};
+  handshakeTimer=setTimeout(()=>{try{socket.close()}catch{};fail(new Error('اتصال به اتاق تماس بیش از حد طول کشید.'))},10000);
   socket.onopen=()=>{if(generation!==signalGeneration)return;clearTimeout(handshakeTimer);settled=true;status('اتصال سیگنال برقرار شد؛ در انتظار طرف مقابل...','ok');resolve(true);};
   socket.onerror=()=>{if(generation!==signalGeneration)return;status('اتصال ارتباطی برقرار نشد؛ در حال تلاش مجدد...','err');fail()};
   socket.onclose=()=>{if(generation!==signalGeneration)return;fail();if(joined&&!closing)reconnectSignal()};
