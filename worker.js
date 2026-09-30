@@ -153,6 +153,41 @@ export default {
       } catch (e) { return json({error:e?.message||"اتصال سیگنال تماس برقرار نشد."},500); }
     }
 
+    if (path === "/api/call-ice" && request.method === "GET") {
+      try {
+        const auth = request.headers.get("Authorization") || "";
+        if (!auth.startsWith("Bearer ")) return json({error:"ابتدا وارد حساب کاربری شوید."},401,{"Cache-Control":"no-store"});
+        const userId = await getUserId(auth.slice(7).trim(), env);
+        if (!userId) return json({error:"جلسه ورود معتبر نیست."},401,{"Cache-Control":"no-store"});
+
+        const account = env.TWILIO_ACCOUNT_SID;
+        const apiKey = env.TWILIO_API_KEY;
+        const apiSecret = env.TWILIO_API_SECRET;
+        const authToken = env.TWILIO_AUTH_TOKEN;
+        if (!account || (!apiKey && !authToken) || (!apiSecret && !authToken)) {
+          return json({error:"تنظیمات Twilio برای TURN روی Worker کامل نشده است."},500,{"Cache-Control":"no-store"});
+        }
+
+        const credentialsUser = apiKey || account;
+        const credentialsSecret = apiSecret || authToken;
+        const tokenResp = await fetch("https://api.twilio.com/2010-04-01/Accounts/"+encodeURIComponent(account)+"/Tokens.json",{
+          method:"POST",
+          headers:{
+            "Authorization":"Basic "+btoa(credentialsUser+":"+credentialsSecret),
+            "Content-Type":"application/x-www-form-urlencoded"
+          },
+          body:new URLSearchParams({Ttl:"3600"})
+        });
+        const data = await tokenResp.json().catch(()=>null);
+        if (!tokenResp.ok || !Array.isArray(data?.ice_servers)) {
+          return json({error:data?.message||"دریافت سرور TURN انجام نشد."},502,{"Cache-Control":"no-store"});
+        }
+        return json({ok:true,ice_servers:data.ice_servers,ttl:Number(data.ttl)||3600},200,{"Cache-Control":"no-store"});
+      } catch (e) {
+        return json({error:e?.message||"خطا در دریافت تنظیمات TURN."},502,{"Cache-Control":"no-store"});
+      }
+    }
+
     if (path === "/api/consultant-call" && request.method === "POST") {
       try {
         const auth = request.headers.get("Authorization") || "";
