@@ -41,7 +41,16 @@ header{position:sticky;top:0;z-index:10;background:#ffffffef;border-bottom:1px s
  ]
 }
 </script>
-</head>
+<script>
+(function(){
+const K='mp_session_v1',IK='mp_session_id_v1',id=()=>crypto.randomUUID?crypto.randomUUID():(Date.now()+'-'+Math.random().toString(36).slice(2));
+let key=localStorage.getItem(K);if(!key){key=id();localStorage.setItem(K,key)}
+let sessionId=localStorage.getItem(IK)||null;const q=new URLSearchParams(location.search),path=location.pathname;
+async function ensure(){const r=await fetch('/api/marketing/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:sessionId||id(),session_key:key,source:q.get('utm_source'),medium:q.get('utm_medium'),campaign:q.get('utm_campaign'),content:q.get('utm_content'),term:q.get('utm_term'),landing_path:path,referrer:document.referrer||null}),keepalive:true});if(!r.ok)throw 0;const x=await r.json();sessionId=x.id;localStorage.setItem(IK,x.id);return x.id}
+window.marketingTrack=async function(event,extra){try{if(!sessionId)await ensure();await fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({session_id:sessionId,event_name:event,page_path:path,metadata:{}},extra||{})),keepalive:true)}catch(e){}};
+ensure().then(()=>marketingTrack('page_view')).catch(()=>{});
+})();
+</script></head>
 <body>
 <header><div class="wrap nav"><a class="brand" href="/">🧠 مرکز مشاوره تلفنی روان</a><nav><a href="/#services">خدمات</a><a href="/#consultants">مشاوران</a><a href="/education.html">آموزش</a></nav></div></header>
 <main>
@@ -102,11 +111,13 @@ const SUPA_URL='https://aserkyiwwyggtixckjsv.supabase.co';
 const SUPA_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 async function getRows(table,select,filter=''){try{const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?select='+encodeURIComponent(select)+filter,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});return r.ok?await r.json():[]}catch(e){return[]}}
 (async()=>{
- const services=await getRows('services','id,name,description,price,active','&active=eq.true&order=name');
+ const services=await getRows('services','id,name,description,price,active','&is_active=eq.true&order=name');
  const consultants=await getRows('consultants','id,name,specialty,bio,active','&active=eq.true&order=name');
  document.getElementById('services').innerHTML=services.length?services.map(x=>'<div class="item"><span><b>'+esc(x.name)+'</b><br><span class="small muted">'+esc(x.description||'خدمت تخصصی مرکز')+'</span></span><a href="/?service='+encodeURIComponent(x.id)+'#services">انتخاب خدمت</a></div>').join(''):'<div class="card muted">در حال حاضر خدمت فعالی برای نمایش وجود ندارد.</div>';
  document.getElementById('consultants').innerHTML=consultants.length?consultants.map(x=>'<div class="item"><span><b>'+esc(x.name)+'</b><br><span class="small muted">'+esc(x.specialty||'مشاور مرکز')+'</span></span><a href="/#consultants">مشاهده</a></div>').join(''):'<div class="card muted">مشاور فعالی برای نمایش وجود ندارد.</div>';
 })();
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 </script>
-</body></html>
+<script>
+document.addEventListener('click',e=>{const a=e.target.closest('[data-service-id]');if(a&&window.marketingTrack)marketingTrack('service_view',{service_id:a.dataset.serviceId,metadata:{source_page:'moshavere-telfoni'}})});
+</script></body></html>
