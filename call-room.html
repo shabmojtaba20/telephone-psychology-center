@@ -52,11 +52,24 @@ const pendingIce=new Map();
 const makingOffer=new Map();
 let signalGeneration=0;
 let remoteStream=new MediaStream();
-const rtcConfig={iceServers:[
+let rtcConfig={iceServers:[
  {urls:'stun:stun.cloudflare.com:3478'},
  {urls:'stun:stun.l.google.com:19302'},
  {urls:'stun:stun1.l.google.com:19302'}
 ],bundlePolicy:'max-bundle',rtcpMuxPolicy:'require',iceCandidatePoolSize:4};
+
+async function loadTurnIceServers(session){
+ try{
+  const r=await fetch('/api/call-ice',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+  const data=await r.json().catch(()=>null);
+  if(r.ok && Array.isArray(data?.ice_servers) && data.ice_servers.length){
+    rtcConfig={...rtcConfig,iceServers:data.ice_servers};
+    console.info('WebRTC TURN configured',data.ice_servers.length,'servers');
+    return true;
+  }
+ }catch(e){console.warn('TURN configuration unavailable; falling back to STUN',e)}
+ return false;
+}
 function sendSignal(payload){if(ws?.readyState!==1)return false;try{ws.send(JSON.stringify(payload));return true}catch{return false}}
 function queueIce(id,candidate){const q=pendingIce.get(id)||[];q.push(candidate);pendingIce.set(id,q)}
 async function flushIce(id,pc){const q=pendingIce.get(id)||[];if(!pc.remoteDescription)return;for(const candidate of q.splice(0)){try{await pc.addIceCandidate(candidate)}catch(err){console.warn('ICE add failed',id,err)}}}
@@ -165,6 +178,7 @@ async function join(){
  $('join').disabled=true;
  try{
   session=await getSession();
+  await loadTurnIceServers(session);
   status('در حال ساخت اتاق امن تماس...');
   room=await prepareRoom();
   await getMedia();
