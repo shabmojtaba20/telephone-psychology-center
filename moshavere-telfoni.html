@@ -50,7 +50,7 @@ async function ensure(){const r=await fetch('/api/marketing/session',{method:'PO
 window.marketingTrack=async function(event,extra){try{if(!sessionId)await ensure();await fetch('/api/marketing/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({session_id:sessionId,event_name:event,page_path:path,metadata:{}},extra||{})),keepalive:true)}catch(e){}};
 ensure().then(()=>marketingTrack('page_view')).catch(()=>{});
 })();
-</script></head>
+</script><meta name="twitter:card" content="summary"><meta name="twitter:title" content="مشاوره تلفنی روانشناسی | رزرو آنلاین نوبت مشاور"><meta name="twitter:description" content="مشاوره تلفنی روانشناسی با امکان انتخاب مشاور، مشاهده خدمات، بررسی زمان‌های آزاد و رزرو آنلاین نوبت در مرکز مشاوره تلفنی روان."></head>
 <body>
 <header><div class="wrap nav"><a class="brand" href="/">🧠 مرکز مشاوره تلفنی روان</a><nav><a href="/#services">خدمات</a><a href="/#consultants">مشاوران</a><a href="/education.html">آموزش</a></nav></div></header>
 <main>
