@@ -237,13 +237,12 @@ export default {
 
     if (path === "/api/marketing/health" && request.method === "GET") {
       try {
-        const sbKey=getSupabaseAdminKey(env);
-        if(!sbKey) return json({ok:false,error:"SUPABASE key is not configured",checked_bindings:["supabase_service_role_key","SUPABASE_SERVICE_ROLE_KEY","SUPABASE_SECRET_KEY"]},503,{"Cache-Control":"no-store"});
+        const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const r=await fetch(getSupabaseUrl(env)+"/rest/v1/marketing_sessions?select=id&limit=1",{
           headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey}
         });
         const data=await r.text();
-        return json({ok:r.ok,status:r.status,key_type:"service_role",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
+        return json({ok:r.ok,status:r.status,key_type:"publishable",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
       } catch(e) {
         return json({ok:false,error:String(e?.message||e)},502,{"Cache-Control":"no-store"});
       }
@@ -255,8 +254,7 @@ export default {
         const sessionKey = String(body?.session_key || "").slice(0,200);
         if (!sessionKey) return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
         const sbUrl=getSupabaseUrl(env);
-        const sbKey=getSupabaseAdminKey(env);
-        if(!sbKey)return json({error:"SUPABASE key is not configured"},503,{"Cache-Control":"no-store"});
+        const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={
           id:body?.id||crypto.randomUUID(),session_key:sessionKey,
           source:body?.source?String(body.source).slice(0,200):null,
@@ -285,8 +283,7 @@ export default {
         const eventName=String(body?.event_name||"").slice(0,100);
         if(!sessionId||!eventName)return json({error:"session_id and event_name required"},400,{"Cache-Control":"no-store"});
         const sbUrl=getSupabaseUrl(env);
-        const sbKey=getSupabaseAdminKey(env);
-        if(!sbKey)return json({error:"SUPABASE key is not configured"},503,{"Cache-Control":"no-store"});
+        const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
         const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
           method:"POST",
