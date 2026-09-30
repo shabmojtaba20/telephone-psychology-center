@@ -238,11 +238,12 @@ export default {
     if (path === "/api/marketing/health" && request.method === "GET") {
       try {
         const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
-        const r=await fetch(getSupabaseUrl(env)+"/rest/v1/marketing_sessions?select=id&limit=1",{
-          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey}
+        const r=await fetch(getSupabaseUrl(env)+"/rest/v1/rpc/marketing_health",{
+          method:"POST",
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json"}
         });
-        const data=await r.text();
-        return json({ok:r.ok,status:r.status,key_type:"publishable",detail:r.ok?"connected":data.slice(0,500)},r.ok?200:502,{"Cache-Control":"no-store"});
+        const data=await r.json().catch(()=>null);
+        return json({ok:r.ok,status:r.status,key_type:"publishable",detail:r.ok?(data||{ok:true}):data},r.ok?200:502,{"Cache-Control":"no-store"});
       } catch(e) {
         return json({ok:false,error:String(e?.message||e)},502,{"Cache-Control":"no-store"});
       }
@@ -250,30 +251,31 @@ export default {
 
     if (path === "/api/marketing/session" && request.method === "POST") {
       try {
-        const body = await request.json();
-        const sessionKey = String(body?.session_key || "").slice(0,200);
-        if (!sessionKey) return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
-        const sbUrl=getSupabaseUrl(env);
+        const body=await request.json();
+        const sessionKey=String(body?.session_key||"").slice(0,200);
+        if(!sessionKey)return json({error:"session_key required"},400,{"Cache-Control":"no-store"});
         const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
         const payload={
-          id:body?.id||crypto.randomUUID(),session_key:sessionKey,
-          source:body?.source?String(body.source).slice(0,200):null,
-          medium:body?.medium?String(body.medium).slice(0,200):null,
-          campaign:body?.campaign?String(body.campaign).slice(0,200):null,
-          content:body?.content?String(body.content).slice(0,200):null,
-          term:body?.term?String(body.term).slice(0,200):null,
-          landing_path:body?.landing_path?String(body.landing_path).slice(0,500):"/",
-          referrer:body?.referrer?String(body.referrer).slice(0,1000):null
+          p_id:body?.id||crypto.randomUUID(),
+          p_session_key:sessionKey,
+          p_source:body?.source?String(body.source).slice(0,200):null,
+          p_medium:body?.medium?String(body.medium).slice(0,200):null,
+          p_campaign:body?.campaign?String(body.campaign).slice(0,200):null,
+          p_content:body?.content?String(body.content).slice(0,200):null,
+          p_term:body?.term?String(body.term).slice(0,200):null,
+          p_landing_path:body?.landing_path?String(body.landing_path).slice(0,500):"/",
+          p_referrer:body?.referrer?String(body.referrer).slice(0,1000):null
         };
-        const r=await fetch(sbUrl+"/rest/v1/marketing_sessions?on_conflict=session_key",{
+        const r=await fetch(getSupabaseUrl(env)+"/rest/v1/rpc/marketing_upsert_session",{
           method:"POST",
-          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json"},
           body:JSON.stringify(payload)
         });
         const data=await r.json().catch(()=>null);
         if(!r.ok)return json({error:"session insert failed",status:r.status,detail:typeof data==="string"?data:String(data?.message||data?.error||"")},502,{"Cache-Control":"no-store"});
-        return json({id:Array.isArray(data)?data[0]?.id:data?.id},200,{"Cache-Control":"no-store"});
-      } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
+        const id=Array.isArray(data)?data[0]?.id:data?.id||data;
+        return json({id},200,{"Cache-Control":"no-store"});
+      } catch(e) { return json({error:"invalid request",detail:String(e?.message||e)},400,{"Cache-Control":"no-store"}); }
     }
 
     if (path === "/api/marketing/event" && request.method === "POST") {
@@ -282,17 +284,24 @@ export default {
         const sessionId=String(body?.session_id||"");
         const eventName=String(body?.event_name||"").slice(0,100);
         if(!sessionId||!eventName)return json({error:"session_id and event_name required"},400,{"Cache-Control":"no-store"});
-        const sbUrl=getSupabaseUrl(env);
         const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
-        const payload={session_id:sessionId,event_name:eventName,page_path:body?.page_path?String(body.page_path).slice(0,500):"/",service_id:body?.service_id||null,consultant_id:body?.consultant_id||null,metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}};
-        const r=await fetch(sbUrl+"/rest/v1/marketing_events",{
+        const payload={
+          p_session_id:sessionId,
+          p_event_name:eventName,
+          p_page_path:body?.page_path?String(body.page_path).slice(0,500):"/",
+          p_service_id:body?.service_id||null,
+          p_consultant_id:body?.consultant_id||null,
+          p_metadata:body?.metadata&&typeof body.metadata==="object"?body.metadata:{}
+        };
+        const r=await fetch(getSupabaseUrl(env)+"/rest/v1/rpc/marketing_insert_event",{
           method:"POST",
-          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json","Prefer":"return=minimal"},
+          headers:{"apikey":sbKey,"Authorization":"Bearer "+sbKey,"Content-Type":"application/json"},
           body:JSON.stringify(payload)
         });
-        if(!r.ok){const detail=await r.text().catch(()=>"" );return json({error:"event insert failed",status:r.status,detail:detail.slice(0,500)},502,{"Cache-Control":"no-store"});}
-        return json({ok:true},200,{"Cache-Control":"no-store"});
-      } catch { return json({error:"invalid request"},400,{"Cache-Control":"no-store"}); }
+        const data=await r.json().catch(()=>null);
+        if(!r.ok)return json({error:"event insert failed",status:r.status,detail:String(data?.message||data?.error||data||"")},502,{"Cache-Control":"no-store"});
+        return json({ok:true,id:Array.isArray(data)?data[0]?.id:data?.id||data},200,{"Cache-Control":"no-store"});
+      } catch(e) { return json({error:"invalid request",detail:String(e?.message||e)},400,{"Cache-Control":"no-store"}); }
     }
 
     if (path === "/admin-professional.html") {
