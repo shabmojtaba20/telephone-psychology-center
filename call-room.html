@@ -59,15 +59,27 @@ let rtcConfig={iceServers:[
 ],bundlePolicy:'max-bundle',rtcpMuxPolicy:'require',iceCandidatePoolSize:4};
 
 async function loadTurnIceServers(session){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),8000);
  try{
-  const r=await fetch('/api/call-ice',{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+  status('در حال آماده‌سازی مسیر امن تماس...');
+  const r=await fetch('/api/call-ice',{
+    headers:{Authorization:'Bearer '+session.access_token},
+    cache:'no-store',
+    signal:controller.signal
+  });
   const data=await r.json().catch(()=>null);
   if(r.ok && Array.isArray(data?.ice_servers) && data.ice_servers.length){
     rtcConfig={...rtcConfig,iceServers:data.ice_servers};
     console.info('WebRTC TURN configured',data.ice_servers.length,'servers');
     return true;
   }
- }catch(e){console.warn('TURN configuration unavailable; falling back to STUN',e)}
+  console.warn('TURN endpoint returned no usable ICE servers',r.status,data);
+ }catch(e){
+  console.warn('TURN configuration unavailable; falling back to STUN',e);
+ }finally{
+  clearTimeout(timeout);
+ }
  return false;
 }
 function sendSignal(payload){if(ws?.readyState!==1)return false;try{ws.send(JSON.stringify(payload));return true}catch{return false}}
