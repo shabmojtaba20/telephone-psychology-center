@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تست مستقل WebRTC | LiveKit</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<style>
+body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f5f7fb;color:#182230}
+.wrap{max-width:980px;margin:0 auto;padding:20px}
+.card{background:#fff;border:1px solid #e4e7ec;border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 8px 30px #1018280d}
+h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+input{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:10px;padding:11px;font-size:14px}
+button{border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;margin-left:8px}
+.primary{background:#2563eb;color:#fff}.danger{background:#dc2626;color:#fff}.ghost{background:#eef2f6;color:#344054}
+.status{padding:11px;border-radius:10px;background:#f2f4f7;margin-top:12px;font-size:13px}
+.videos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{background:#101828;border-radius:16px;overflow:hidden;min-height:240px;position:relative}
+video{width:100%;height:100%;min-height:240px;object-fit:cover;background:#000}
+.caption{position:absolute;right:10px;top:10px;background:#000a;color:#fff;padding:5px 9px;border-radius:8px;font-size:12px}
+#remoteGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+@media(max-width:700px){.row,.videos{grid-template-columns:1fr}.box{min-height:220px}video{min-height:220px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🎥 تست مستقل تماس تصویری WebRTC</h1>
+    <div class="muted">این صفحه مستقل از call-room فعلی سایت است و فقط برای آزمایش LiveKit ساخته شده.</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="tokenServerId">Token Server ID</label>
+        <input id="tokenServerId" placeholder="شناسه Development Token Server">
+      </div>
+      <div>
+        <label for="roomName">نام اتاق</label>
+        <input id="roomName" value="psychology-test-room">
+      </div>
+      <div>
+        <label for="participantName">نام نمایشی</label>
+        <input id="participantName" value="test-user">
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <button id="join" class="primary">ورود به اتاق</button>
+      <button id="leave" class="danger" disabled>خروج</button>
+    </div>
+    <div id="status" class="status">آماده تست.</div>
+  </div>
+
+  <div class="card">
+    <div class="videos">
+      <div class="box"><video id="local" autoplay playsinline muted></video><span class="caption">دوربین من</span></div>
+      <div class="box"><video id="preview" autoplay playsinline muted></video><span class="caption">پیش‌نمایش</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">تصویر طرف مقابل</h3>
+    <div id="remoteGrid"></div>
+    <div id="emptyRemote" class="muted">هنوز شرکت‌کننده دیگری وارد اتاق نشده است.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const L=window.LivekitClient;
+  let room=null;
+  const $=id=>document.getElementById(id);
+  function status(t,err=false){$('status').textContent=(err?'❌ ':'✅ ')+t}
+
+  function attachTrack(track,el){
+    try{track.attach(el)}catch(e){console.warn(e)}
+  }
+
+  function addRemote(participant,track){
+    let box=document.getElementById('remote-'+participant.identity);
+    if(!box){
+      box=document.createElement('div');box.className='box';box.id='remote-'+participant.identity;
+      const v=document.createElement('video');v.autoplay=true;v.playsInline=true;
+      const c=document.createElement('span');c.className='caption';c.textContent=participant.name||participant.identity;
+      box.append(v,c);$('remoteGrid').appendChild(box);
+    }
+    const v=box.querySelector('video');attachTrack(track,v);
+    $('emptyRemote').style.display='none';
+  }
+
+  function removeRemote(participant,track){
+    try{track.detach()}catch{}
+    const p=participant.getTrackPublications().length;
+    if(!p){
+      document.getElementById('remote-'+participant.identity)?.remove();
+      $('emptyRemote').style.display=$('remoteGrid').children.length?'none':'block';
+    }
+  }
+
+  $('join').onclick=async()=>{
+    const tokenServerId=$('tokenServerId').value.trim();
+    const roomName=$('roomName').value.trim()||'psychology-test-room';
+    const participantName=$('participantName').value.trim()||'test-user';
+    if(!tokenServerId){status('ابتدا Token Server ID را وارد کنید.',true);return}
+    if(!L){status('کتابخانه LiveKit بارگذاری نشده است.',true);return}
+    $('join').disabled=true;
+    try{
+      status('در حال دریافت توکن تست...');
+      const tokenSource=L.TokenSource.developmentTokenServer(tokenServerId);
+      const creds=await tokenSource.fetch({roomName,participantName});
+      status('در حال اتصال به LiveKit...');
+      room=new L.Room();
+      room.on(L.RoomEvent.TrackSubscribed,(track,publication,participant)=>{
+        if(track.kind===L.Track.Kind.Video || track.kind===L.Track.Kind.Audio) addRemote(participant,track);
+      });
+      room.on(L.RoomEvent.TrackUnsubscribed,(track,publication,participant)=>removeRemote(participant,track));
+      room.on(L.RoomEvent.ParticipantConnected,p=>status('طرف مقابل وارد اتاق شد: '+(p.name||p.identity)));
+      room.on(L.RoomEvent.ParticipantDisconnected,p=>{
+        document.getElementById('remote-'+p.identity)?.remove();
+        $('emptyRemote').style.display=$('remoteGrid').children.length?'none':'block';
+      });
+      room.on(L.RoomEvent.Disconnected,reason=>status('اتصال قطع شد: '+(reason||''),true));
+      await room.connect(creds.serverUrl,creds.participantToken);
+      status('اتصال برقرار شد. در حال فعال‌سازی دوربین و میکروفون...');
+      await room.localParticipant.enableCameraAndMicrophone();
+      for(const pub of room.localParticipant.videoTrackPublications.values()){
+        if(pub.track) attachTrack(pub.track,$('local'));
+      }
+      for(const pub of room.localParticipant.audioTrackPublications.values()){
+        if(pub.track) attachTrack(pub.track,$('preview'));
+      }
+      $('leave').disabled=false;
+      status('آماده است؛ اکنون گوشی دوم را با همین Token Server و نام اتاق وارد کنید.');
+    }catch(e){
+      console.error(e);status(e?.message||String(e),true);$('join').disabled=false;
+    }
+  };
+
+  $('leave').onclick=async()=>{
+    try{await room?.disconnect()}catch{}
+    room=null;$('local').srcObject=null;$('preview').srcObject=null;$('remoteGrid').innerHTML='';
+    $('emptyRemote').style.display='block';$('leave').disabled=true;$('join').disabled=false;status('از اتاق خارج شدید.');
+  };
+})();
+</script>
+</body>
+</html>
