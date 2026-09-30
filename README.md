@@ -17,3 +17,5 @@
 - Root: `/`
 
 <!-- Cloudflare Workers automatic deployment verification: 2026-09-17 -->
+
+<!-- Fresh deployment trigger: 2026-09-30 -->
