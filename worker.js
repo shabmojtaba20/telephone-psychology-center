@@ -6,7 +6,7 @@ const json = (data, status=200, extra={}) => new Response(JSON.stringify(data), 
 });
 
 function getSupabaseAdminKey(env){
-  return env.supabase_service_role_key || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || "";
+  return env.SUPABASE_SERVICE_ROLE_KEY || "";
 }
 
 function getSupabaseUrl(env){
