@@ -173,6 +173,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
+    if (path === "/api/live-call-health" && request.method === "GET") {
+      return json({
+        ok:true,
+        runtime:"livekit-rpc-v2",
+        livekit_configured:Boolean(env.LIVEKIT_URL && env.LIVEKIT_API_KEY && env.LIVEKIT_API_SECRET),
+        supabase_url_configured:Boolean(env.SUPABASE_URL),
+        livekit_call_uses_service_role:false
+      },200,{"Cache-Control":"no-store"});
+    }
+
     if (path.startsWith("/api/call-signal/") && request.headers.get("Upgrade") === "websocket") {
       try {
         const roomKey = decodeURIComponent(path.slice("/api/call-signal/".length));
