@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#312e81">
+<title>اتاق مشاوره آنلاین | LiveKit</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<style>
+body{margin:0;background:#f6f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
+.wrap{max-width:920px;margin:auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 8px 30px #1118270d}
+h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{margin:12px 0;padding:11px;border-radius:11px;background:#eef2ff;color:#3730a3}.ok{background:#ecfdf5;color:#166534}.err{background:#fff1f2;color:#9f1239}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn{border:0;border-radius:10px;padding:10px 14px;background:#4f46e5;color:#fff;font:inherit;font-weight:700;cursor:pointer}.btn.red{background:#b42318}.btn.gray{background:#667085}.btn:disabled{opacity:.55;cursor:not-allowed}
+.videos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.videoBox{position:relative;background:#111827;border-radius:15px;overflow:hidden;min-height:260px}.videoBox video{width:100%;height:100%;min-height:260px;object-fit:cover;background:#111827}.label{position:absolute;right:9px;top:9px;background:#0009;color:#fff;padding:5px 8px;border-radius:8px;font-size:12px}
+#remoteGrid{display:grid;grid-template-columns:1fr;gap:12px}#remoteGrid .videoBox{min-height:300px}
+@media(max-width:700px){.wrap{padding:10px}.videos{grid-template-columns:1fr}.videoBox,.videoBox video{min-height:240px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="card">
+<h1>🎥 اتاق مشاوره آنلاین</h1>
+<div id="who" class="muted">در حال آماده‌سازی...</div>
+<div id="status" class="status">در حال بررسی جلسه...</div>
+<div class="actions">
+<button id="join" class="btn">🎙️ ورود به تماس</button>
+<button id="mic" class="btn gray" disabled>🎙️ میکروفون</button>
+<button id="cam" class="btn gray" disabled>📷 دوربین</button>
+<button id="hangup" class="btn red" disabled>⏹ پایان تماس</button>
+<button id="audio" class="btn gray" style="display:none">🔊 فعال‌سازی صدا</button>
+</div>
+<div class="videos">
+<div class="videoBox"><span class="label">شما</span><video id="local" autoplay muted playsinline></video></div>
+</div>
+</section>
+<section class="card" style="margin-top:14px">
+<h3 style="margin-top:0">طرف مقابل</h3>
+<div id="remoteGrid"></div>
+<div id="emptyRemote" class="muted">منتظر ورود طرف مقابل هستیم...</div>
+</section>
+</main>
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
+const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
+const db=createClient(SB_URL,SB_KEY);
+const L=window.LivekitClient;
+const $=id=>document.getElementById(id);
+const appointmentId=new URLSearchParams(location.search).get('appointment_id');
+let room=null,session=null,joined=false,closing=false,remoteBoxes=new Map();
+
+function status(text,kind=''){ $('status').className='status '+kind; $('status').textContent=text; }
+function say(text){ $('who').textContent=text; }
+
+async function getSession(){
+  const {data,error}=await db.auth.getSession();
+  if(error||!data.session)throw new Error('ابتدا وارد حساب کاربری شوید.');
+  return data.session;
+}
+async function getCredentials(){
+  const r=await fetch('/api/livekit-token',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Cache-Control':'no-store'},
+    body:JSON.stringify({appointment_id:appointmentId})
+  });
+  const data=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error(data?.error||'مجوز LiveKit دریافت نشد.');
+  return data;
+}
+function clearRemote(participantIdentity){
+  const box=remoteBoxes.get(participantIdentity);
+  if(!box)return;
+  box.querySelectorAll('video,audio').forEach(el=>{try{el.remove()}catch{}});
+  box.remove();
+  remoteBoxes.delete(participantIdentity);
+}
+function attachRemote(track,participant){
+  $('emptyRemote').style.display='none';
+  let box=remoteBoxes.get(participant.identity);
+  if(!box){
+    box=document.createElement('div');
+    box.className='videoBox';
+    const label=document.createElement('span');
+    label.className='label';
+    label.textContent=participant.name||'طرف مقابل';
+    box.appendChild(label);
+    $('remoteGrid').appendChild(box);
+    remoteBoxes.set(participant.identity,box);
+  }
+  const el=track.attach();
+  el.autoplay=true;
+  el.playsInline=true;
+  if(track.kind===L.Track.Kind.Audio)el.controls=false;
+  box.appendChild(el);
+}
+function detachTrack(track){
+  try{track.detach().forEach(el=>el.remove())}catch{}
+}
+async function enableLocal(){
+  await room.localParticipant.enableCameraAndMicrophone();
+  room.localParticipant.videoTrackPublications?.forEach?.(pub=>pub.track?.attach($('local')));
+  for(const pub of room.localParticipant.trackPublications.values()){
+    if(pub.track?.kind===L.Track.Kind.Video)pub.track.attach($('local'));
+  }
+  $('mic').disabled=false;$('cam').disabled=false;$('hangup').disabled=false;
+}
+function bindRoomEvents(){
+  room.on(L.RoomEvent.TrackSubscribed,(track,publication,participant)=>{
+    attachRemote(track,participant);
+    status('✅ تصویر و صدای طرف مقابل دریافت شد.','ok');
+  });
+  room.on(L.RoomEvent.TrackUnsubscribed,(track)=>detachTrack(track));
+  room.on(L.RoomEvent.ParticipantConnected',(participant)=>{
+    $('emptyRemote').style.display='none';
+    status('طرف مقابل وارد اتاق شد؛ در حال دریافت تصویر و صدا...','ok');
+  });
+  room.on(L.RoomEvent.ParticipantDisconnected',(participant)=>{
+    clearRemote(participant.identity);
+    if(remoteBoxes.size===0)$('emptyRemote').style.display='block';
+    status('طرف مقابل از تماس خارج شد.','err');
+  });
+  room.on(L.RoomEvent.Connected,()=>status('اتصال LiveKit برقرار شد؛ در حال فعال‌سازی دوربین و میکروفون...','ok'));
+  room.on(L.RoomEvent.Reconnecting,()=>status('ارتباط موقتاً قطع شد؛ LiveKit در حال اتصال مجدد است...','err'));
+  room.on(L.RoomEvent.Reconnected,()=>status('✅ اتصال مجدد برقرار شد.','ok'));
+  room.on(L.RoomEvent.Disconnected,()=>{if(!closing)status('ارتباط تماس قطع شد.','err')});
+  room.on(L.RoomEvent.AudioPlaybackStatusChanged,()=>{
+    if(room&&!room.canPlaybackAudio)$('audio').style.display='inline-block';
+    else $('audio').style.display='none';
+  });
+  room.on(L.RoomEvent.MediaDevicesError,(e)=>status('دسترسی به دوربین یا میکروفون برقرار نشد: '+(e?.message||e),'err'));
+}
+async function join(){
+  if(joined)return;
+  if(!appointmentId){status('شناسه نوبت در لینک وجود ندارد.','err');return}
+  $('join').disabled=true;
+  try{
+    closing=false;
+    status('در حال احراز هویت...');
+    session=await getSession();
+    status('در حال دریافت مجوز امن LiveKit...');
+    const creds=await getCredentials();
+    say((creds.role==='consultant'?'مشاور':'مراجعه‌کننده')+' · جلسه امن');
+    room=new L.Room({adaptiveStream:true,dynacast:true});
+    bindRoomEvents();
+    room.prepareConnection(creds.server_url,creds.participant_token);
+    status('در حال اتصال به اتاق تماس...');
+    await room.connect(creds.server_url,creds.participant_token);
+    await enableLocal();
+    joined=true;
+    status('✅ تماس LiveKit آماده است؛ منتظر طرف مقابل...','ok');
+  }catch(e){
+    console.error(e);
+    try{await room?.disconnect()}catch{}
+    room=null;$('join').disabled=false;
+    status('❌ '+(e?.message||'ورود به تماس انجام نشد.'),'err');
+  }
+}
+async function hangup(){
+  closing=true;
+  try{await room?.disconnect()}catch{}
+  room=null;joined=false;
+  remoteBoxes.forEach(box=>box.remove());remoteBoxes.clear();
+  $('remoteGrid').innerHTML='';$('emptyRemote').style.display='block';
+  $('local').srcObject=null;
+  $('join').disabled=false;$('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
+  status('تماس پایان یافت.','err');
+}
+$('join').onclick=join;
+$('hangup').onclick=hangup;
+$('mic').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Audio);if(pub?.track){pub.track.isMuted?p.setMicrophoneEnabled(true):p.setMicrophoneEnabled(false);$('mic').textContent=pub.track.isMuted?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
+$('cam').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Video);if(pub?.track){pub.track.isMuted?p.setCameraEnabled(true):p.setCameraEnabled(false);$('cam').textContent=pub.track.isMuted?'📷 دوربین':'🚫 دوربین خاموش'}};
+$('audio').onclick=async()=>{try{await room?.startAudio();$('audio').style.display='none';status('✅ صدا فعال شد.','ok')}catch(e){status('فعال‌سازی صدا انجام نشد.','err')}};
+status(appointmentId?'برای شروع، «ورود به تماس» را بزنید.':'شناسه نوبت مشخص نیست.','err');
+</script>
+</body>
+</html>
