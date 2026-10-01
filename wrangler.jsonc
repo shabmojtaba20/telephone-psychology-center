@@ -25,20 +25,7 @@
       ]
     }
   ],
-  "secrets": {
-    "required": [
-      "SUPABASE_SERVICE_ROLE_KEY",
-      "SUPABASE_URL"
-    ]
-  },
-  "env": {
-    "production": {
-      "secrets": {
-        "required": [
-          "SUPABASE_SERVICE_ROLE_KEY",
-          "SUPABASE_URL"
-        ]
-      }
-    }
+  "vars": {
+    "SUPABASE_URL": "https://aserkyiwwyggtixckjsv.supabase.co"
   }
 }
