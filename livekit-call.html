@@ -111,11 +111,11 @@ function bindRoomEvents(){
     status('✅ تصویر و صدای طرف مقابل دریافت شد.','ok');
   });
   room.on(L.RoomEvent.TrackUnsubscribed,(track)=>detachTrack(track));
-  room.on(L.RoomEvent.ParticipantConnected',(participant)=>{
+  room.on(L.RoomEvent.ParticipantConnected,(participant)=>{
     $('emptyRemote').style.display='none';
     status('طرف مقابل وارد اتاق شد؛ در حال دریافت تصویر و صدا...','ok');
   });
-  room.on(L.RoomEvent.ParticipantDisconnected',(participant)=>{
+  room.on(L.RoomEvent.ParticipantDisconnected,(participant)=>{
     clearRemote(participant.identity);
     if(remoteBoxes.size===0)$('emptyRemote').style.display='block';
     status('طرف مقابل از تماس خارج شد.','err');
