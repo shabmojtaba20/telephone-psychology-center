@@ -224,8 +224,27 @@ export default {
         const appointmentId=String(body?.appointment_id||"").trim();
         if(!appointmentId)return json({error:"شناسه نوبت ارسال نشده است."},400,{"Cache-Control":"no-store"});
         const rooms=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,room_key,status,starts_at,ends_at&appointment_id=eq."+encodeURIComponent(appointmentId)+"&room_type=eq.private_consultation&limit=1");
-        const callRoom=rooms?.[0];
-        if(!callRoom)return json({error:"اتاق تماس این نوبت هنوز ساخته نشده است."},404,{"Cache-Control":"no-store"});
+        let callRoom=rooms?.[0];
+        if(!callRoom){
+          const sbUrl=getSupabaseUrl(env);
+          const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+          const rpcName=(await hasPermission(env,token,"content.manage") || await hasPermission(env,token,"calls.manage"))
+            ?"get_or_create_my_consultant_call_room"
+            :"get_or_create_my_call_room";
+          const rpc=await fetch(sbUrl+"/rest/v1/rpc/"+rpcName,{
+            method:"POST",
+            headers:{"apikey":sbKey,"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+            body:JSON.stringify({p_appointment_id:appointmentId})
+          });
+          const created=await rpc.json().catch(()=>null);
+          if(!rpc.ok)return json({error:created?.message||created?.error||"اتاق تماس این نوبت ساخته نشد."},400,{"Cache-Control":"no-store"});
+          const row=Array.isArray(created)?created[0]:created;
+          const roomId=row?.room_id||row?.id;
+          if(!row?.room_key)return json({error:"کلید اتاق تماس دریافت نشد."},500,{"Cache-Control":"no-store"});
+          callRoom={id:roomId,room_type:"private_consultation",appointment_id:appointmentId,room_key:row.room_key,status:row.room_status||row.status};
+          const refreshed=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,room_key,status,starts_at,ends_at&id=eq."+encodeURIComponent(roomId)+"&limit=1");
+          if(refreshed?.[0])callRoom=refreshed[0];
+        }
         const authz=await authorizeCallRoom(request,env,callRoom.room_key);
         if(!authz.ok)return json({error:authz.error},authz.status,{"Cache-Control":"no-store"});
         const livekitUrl=env.LIVEKIT_URL||"";
