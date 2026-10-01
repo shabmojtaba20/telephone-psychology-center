@@ -18,7 +18,7 @@ function base64UrlFromBytes(bytes){
   let binary="";
   const arr=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
   for(const b of arr)binary+=String.fromCharCode(b);
-  return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"");
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
 }
 function base64UrlFromText(text){return base64UrlFromBytes(new TextEncoder().encode(text));}
 async function createLiveKitToken({apiKey,apiSecret,identity,name,roomName,ttlSeconds=3600}){
