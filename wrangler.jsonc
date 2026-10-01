@@ -20,7 +20,25 @@
   "migrations": [
     {
       "tag": "call-signaling-v1",
-      "new_sqlite_classes": ["CallSignalingRoom"]
+      "new_sqlite_classes": [
+        "CallSignalingRoom"
+      ]
     }
-  ]
+  ],
+  "secrets": {
+    "required": [
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "SUPABASE_URL"
+    ]
+  },
+  "env": {
+    "production": {
+      "secrets": {
+        "required": [
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "SUPABASE_URL"
+        ]
+      }
+    }
+  }
 }
