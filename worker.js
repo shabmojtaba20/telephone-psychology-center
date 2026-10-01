@@ -21,12 +21,21 @@ function base64UrlFromBytes(bytes){
   return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
 }
 function base64UrlFromText(text){return base64UrlFromBytes(new TextEncoder().encode(text));}
+async function signHs256Jwt(apiKey,apiSecret,payload){
+  const header={alg:"HS256",typ:"JWT"};
+  const unsigned=base64UrlFromText(JSON.stringify(header))+"."+base64UrlFromText(JSON.stringify(payload));
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(apiSecret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(unsigned));
+  return unsigned+"."+base64UrlFromBytes(signature);
+}
+
 async function createLiveKitToken({apiKey,apiSecret,identity,name,roomName,ttlSeconds=3600}){
   const now=Math.floor(Date.now()/1000);
   const header={alg:"HS256",typ:"JWT"};
   const payload={
     iss:apiKey,
     sub:identity,
+    iat:now,
     nbf:now,
     exp:now+ttlSeconds,
     name,
@@ -293,6 +302,67 @@ export default {
                      msg==="CALL_ACCESS_DENIED"||msg==="CALL_TIME_WINDOW_CLOSED"||msg==="APPOINTMENT_NOT_AVAILABLE"?403:
                      msg==="AUTH_REQUIRED"?401:500;
         return json({error:friendly},status,{"Cache-Control":"no-store"});
+      }
+    }
+
+    if (path === "/api/livekit-credential-test" && request.method === "POST") {
+      try {
+        const auth=request.headers.get("Authorization")||"";
+        if(!auth.startsWith("Bearer ")) return json({error:"ابتدا وارد حساب کاربری شوید."},401,{"Cache-Control":"no-store"});
+        const token=auth.slice(7).trim();
+        const userId=await getUserId(token,env);
+        if(!userId)return json({error:"جلسه ورود معتبر نیست."},401,{"Cache-Control":"no-store"});
+        const livekitUrl=String(env.LIVEKIT_URL||"").trim();
+        const livekitKey=String(env.LIVEKIT_API_KEY||"").trim();
+        const livekitSecret=String(env.LIVEKIT_API_SECRET||"").trim();
+        if(!livekitUrl||!livekitKey||!livekitSecret) {
+          return json({ok:false,stage:"config",error:"تنظیمات LiveKit روی Worker کامل نشده است."},503,{"Cache-Control":"no-store"});
+        }
+        const testToken=await createLiveKitToken({
+          apiKey:livekitKey,
+          apiSecret:livekitSecret,
+          identity:"diagnostic-"+userId,
+          name:"diagnostic",
+          roomName:"diagnostic-room",
+          ttlSeconds:300
+        });
+        const decoded=testToken.split(".")[1]||"";
+        const payload=JSON.parse(atob(decoded.replace(/-/g,"+").replace(/_/g,"/")+"==".slice((decoded.length+3)%4)));
+        const schemeHost=livekitUrl.replace(/^wss?:\/\//,"https://").replace(/\/$/,"");
+        const apiTokenPayload={
+          iss:livekitKey,
+          sub:"diagnostic-"+userId,
+          iat:Math.floor(Date.now()/1000),
+          nbf:Math.floor(Date.now()/1000),
+          exp:Math.floor(Date.now()/1000)+300,
+          video:{roomList:true}
+        };
+        const roomListToken=await signHs256Jwt(livekitKey,livekitSecret,apiTokenPayload);
+        const check=await fetch(schemeHost+"/twirp/livekit.RoomService/ListRooms",{
+          method:"POST",
+          headers:{"Authorization":"Bearer "+roomListToken,"Content-Type":"application/json"},
+          body:JSON.stringify({})
+        });
+        const body=await check.json().catch(()=>null);
+        return json({
+          ok:check.ok,
+          stage:check.ok?"livekit_authorized":"livekit_rejected",
+          http_status:check.status,
+          token_shape:{
+            iss_present:!!payload.iss,
+            sub_present:!!payload.sub,
+            iat_present:!!payload.iat,
+            nbf_present:!!payload.nbf,
+            exp_present:!!payload.exp,
+            room:payload?.video?.room||null,
+            roomJoin:payload?.video?.roomJoin===true,
+            canPublish:payload?.video?.canPublish===true,
+            canSubscribe:payload?.video?.canSubscribe===true
+          },
+          livekit_error:check.ok?null:(body?.msg||body?.message||body?.error||"LiveKit کلید/توکن را رد کرد.")
+        },check.ok?200:502,{"Cache-Control":"no-store"});
+      } catch(e) {
+        return json({ok:false,stage:"exception",error:e?.message||"تست اعتبار LiveKit انجام نشد."},500,{"Cache-Control":"no-store"});
       }
     }
 
