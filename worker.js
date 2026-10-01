@@ -447,7 +447,13 @@ export default {
       } catch(e) { return json({error:"invalid request",detail:String(e?.message||e)},400,{"Cache-Control":"no-store"}); }
     }
 
-    if (path === "/livekit-call.html") {\n      const response = await env.ASSETS.fetch(new Request(new URL("/livekit-call.html", url), request));\n      const headers = new Headers(response.headers);\n      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");\n      headers.set("Pragma", "no-cache");\n      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });\n    }\n\n    if (path === "/admin-professional.html") {
+    if (path === "/livekit-call.html") {
+      const response = await env.ASSETS.fetch(new Request(new URL("/livekit-call.html", url), request));
+      const headers = new Headers(response.headers);
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      headers.set("Pragma", "no-cache");
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }\n\n    if (path === "/admin-professional.html") {
       const response = await env.ASSETS.fetch(new Request(new URL("/admin-professional.html", url), request));
       const headers = new Headers(response.headers);
       headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
