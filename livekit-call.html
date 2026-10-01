@@ -100,7 +100,6 @@ function bindRoomEvents(){
     status('✅ تصویر و صدای طرف مقابل دریافت شد.','ok');
   });
   room.on(L.RoomEvent.TrackUnsubscribed,(track)=>detachTrack(track));
-  room.on(L.RoomEvent.ParticipantConnected',()=>{});
   room.on(L.RoomEvent.ParticipantConnected,(participant)=>{
     $('emptyRemote').style.display='none';
     status('طرف مقابل وارد اتاق شد؛ در حال دریافت تصویر و صدا...','ok');
