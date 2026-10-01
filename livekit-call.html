@@ -32,6 +32,12 @@ h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{mar
 <div class="videoBox"><span class="label">شما</span><video id="local" autoplay muted playsinline></video></div>
 </div>
 </section>
+<section class="card" id="diagnosticCard" style="margin-top:14px;border:2px solid #c7d2fe">
+<h3 style="margin-top:0">🔎 بررسی فنی اتصال</h3>
+<div id="diagStatus" class="status">برای بررسی اعتبار اتصال، دکمه زیر را بزنید.</div>
+<button id="diagBtn" class="btn gray">اجرای تست اتصال LiveKit</button>
+<pre id="diagResult" style="white-space:pre-wrap;direction:ltr;text-align:left;background:#111827;color:#e5e7eb;padding:12px;border-radius:10px;overflow:auto;display:none"></pre>
+</section>
 <section class="card" style="margin-top:14px">
 <h3 style="margin-top:0">طرف مقابل</h3>
 <div id="remoteGrid"></div>
@@ -56,6 +62,19 @@ async function getSession(){
   const {data,error}=await db.auth.getSession();
   if(error||!data.session)throw new Error('ابتدا وارد حساب کاربری شوید.');
   return data.session;
+}
+async function runDiagnostic(){
+  const btn=$('diagBtn'), out=$('diagResult'), ds=$('diagStatus');
+  btn.disabled=true; ds.className='status'; ds.textContent='در حال اجرای تست امن...'; out.style.display='none';
+  try{
+    const s=await getSession();
+    const r=await fetch('/api/livekit-credential-test',{method:'POST',headers:{'Authorization':'Bearer '+s.access_token,'Content-Type':'application/json','Cache-Control':'no-store'}});
+    const data=await r.json().catch(()=>({error:'پاسخ JSON نبود'}));
+    out.textContent=JSON.stringify(data,null,2); out.style.display='block';
+    if(data.ok){ds.className='status ok';ds.textContent='✅ اعتبار LiveKit معتبر است؛ حالا مشکل را در مرحله اتصال تماس بررسی می‌کنیم.'}
+    else {ds.className='status err';ds.textContent='❌ تست اعتبار LiveKit ناموفق بود؛ نتیجه زیر علت را مشخص می‌کند.'}
+  }catch(e){ds.className='status err';ds.textContent='❌ اجرای تست انجام نشد: '+(e?.message||e)}
+  finally{btn.disabled=false}
 }
 async function getCredentials(){
   if(!L)throw new Error('کتابخانه تماس LiveKit در مرورگر بارگذاری نشد.');
@@ -150,7 +169,7 @@ async function hangup(){
   $('join').disabled=false;$('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
   status('تماس پایان یافت.','err');
 }
-$('join').onclick=join;$('hangup').onclick=hangup;
+$('diagBtn').onclick=runDiagnostic;$('join').onclick=join;$('hangup').onclick=hangup;
 $('mic').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Audio);if(pub?.track){pub.track.isMuted?p.setMicrophoneEnabled(true):p.setMicrophoneEnabled(false);$('mic').textContent=pub.track.isMuted?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
 $('cam').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Video);if(pub?.track){pub.track.isMuted?p.setCameraEnabled(true):p.setCameraEnabled(false);$('cam').textContent=pub.track.isMuted?'📷 دوربین':'🚫 دوربین خاموش'}};
 $('audio').onclick=async()=>{try{await room?.startAudio();$('audio').style.display='none';status('✅ صدا فعال شد.','ok')}catch(e){status('فعال‌سازی صدا انجام نشد.','err')}};
