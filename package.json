@@ -2,6 +2,7 @@
   "name": "telephone-psychology-center",
   "version": "1.0.5",
   "private": true,
+  "deployRefresh": "2026-10-01-call-config-refresh",
   "scripts": {
     "build": "node build.js && node education-build.js && node finance-build-inject.js && node panel-build-inject.js && node role-inject.js && node final-build-check.js"
   }
