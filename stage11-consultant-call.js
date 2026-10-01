@@ -65,7 +65,7 @@ wait(async()=>{
    slot.innerHTML=`<div style="margin-top:12px;padding:10px;border-radius:10px;background:#f5faf7;border:1px solid #b7dec5"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" data-consultant-call="${esc(id)}" ${disabled?'disabled':''} style="background:${bg};color:#fff">${buttonText}</button><button class="btn" data-consultant-end="${esc(id)}" style="display:none;background:#b42318;color:#fff">⏹ پایان جلسه</button><span data-call-countdown class="muted">${stateText}</span></div><div data-call-status class="muted" style="margin-top:7px"></div></div>`;
    const btn=slot.querySelector('[data-consultant-call]'),endBtn=slot.querySelector('[data-consultant-end]'),msg=slot.querySelector('[data-call-status]');
    if(!disabled){
-    btn.addEventListener('click',()=>{if(btn.disabled)return;btn.disabled=true;btn.textContent='در حال ورود به تماس…';location.href='/livekit-call.html?appointment_id='+encodeURIComponent(id)+'&role=client';});
+    btn.addEventListener('click',()=>{if(btn.disabled)return;btn.disabled=true;btn.textContent='در حال ورود به تماس…';location.href='/livekit-call.html?appointment_id='+encodeURIComponent(id)+'&role=client&v=20261001-2';});
    }
    endBtn.addEventListener('click',async()=>{endBtn.disabled=true;try{const {error}=await db.rpc('finish_my_consultant_call',{p_appointment_id:id,p_status:'completed'});if(error)throw error;msg.textContent='✅ جلسه با موفقیت ثبت شد.';setTimeout(render,300);}catch(err){msg.textContent='❌ '+(err.message||'ثبت پایان جلسه انجام نشد.');endBtn.disabled=false;}});
   });
