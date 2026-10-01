@@ -449,3 +449,5 @@ export default {
     return addDesignerFooter(await env.ASSETS.fetch(request));
   }
 };
+
+// Production deploy verification: 2026-10-01
