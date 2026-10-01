@@ -453,7 +453,9 @@ export default {
       headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       headers.set("Pragma", "no-cache");
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
-    }\n\n    if (path === "/admin-professional.html") {
+    }
+
+    if (path === "/admin-professional.html") {
       const response = await env.ASSETS.fetch(new Request(new URL("/admin-professional.html", url), request));
       const headers = new Headers(response.headers);
       headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
