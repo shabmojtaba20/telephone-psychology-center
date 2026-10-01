@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#312e81">
 <title>اتاق مشاوره آنلاین | LiveKit</title>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 <style>
 body{margin:0;background:#f6f7fb;color:#172033;font-family:Tahoma,Arial,sans-serif}
 .wrap{max-width:920px;margin:auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 8px 30px #1118270d}
@@ -41,11 +40,12 @@ h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{mar
 </main>
 <script type="module">
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import * as LiveKit from 'https://cdn.jsdelivr.net/npm/livekit-client@2.15.6/+esm';
 
 const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
 const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
 const db=createClient(SB_URL,SB_KEY);
-const L=window.LivekitClient;
+const L=LiveKit;
 const $=id=>document.getElementById(id);
 const appointmentId=new URLSearchParams(location.search).get('appointment_id');
 let room=null,session=null,joined=false,closing=false,remoteBoxes=new Map();
@@ -79,27 +79,16 @@ function attachRemote(track,participant){
   $('emptyRemote').style.display='none';
   let box=remoteBoxes.get(participant.identity);
   if(!box){
-    box=document.createElement('div');
-    box.className='videoBox';
-    const label=document.createElement('span');
-    label.className='label';
-    label.textContent=participant.name||'طرف مقابل';
-    box.appendChild(label);
-    $('remoteGrid').appendChild(box);
-    remoteBoxes.set(participant.identity,box);
+    box=document.createElement('div'); box.className='videoBox';
+    const label=document.createElement('span'); label.className='label';
+    label.textContent=participant.name||'طرف مقابل'; box.appendChild(label);
+    $('remoteGrid').appendChild(box); remoteBoxes.set(participant.identity,box);
   }
-  const el=track.attach();
-  el.autoplay=true;
-  el.playsInline=true;
-  if(track.kind===L.Track.Kind.Audio)el.controls=false;
-  box.appendChild(el);
+  const el=track.attach(); el.autoplay=true; el.playsInline=true; box.appendChild(el);
 }
-function detachTrack(track){
-  try{track.detach().forEach(el=>el.remove())}catch{}
-}
+function detachTrack(track){try{track.detach().forEach(el=>el.remove())}catch{}}
 async function enableLocal(){
   await room.localParticipant.enableCameraAndMicrophone();
-  room.localParticipant.videoTrackPublications?.forEach?.(pub=>pub.track?.attach($('local')));
   for(const pub of room.localParticipant.trackPublications.values()){
     if(pub.track?.kind===L.Track.Kind.Video)pub.track.attach($('local'));
   }
@@ -111,6 +100,7 @@ function bindRoomEvents(){
     status('✅ تصویر و صدای طرف مقابل دریافت شد.','ok');
   });
   room.on(L.RoomEvent.TrackUnsubscribed,(track)=>detachTrack(track));
+  room.on(L.RoomEvent.ParticipantConnected',()=>{});
   room.on(L.RoomEvent.ParticipantConnected,(participant)=>{
     $('emptyRemote').style.display='none';
     status('طرف مقابل وارد اتاق شد؛ در حال دریافت تصویر و صدا...','ok');
@@ -135,39 +125,31 @@ async function join(){
   if(!appointmentId){status('شناسه نوبت در لینک وجود ندارد.','err');return}
   $('join').disabled=true;
   try{
-    closing=false;
-    status('در حال احراز هویت...');
+    closing=false; status('در حال احراز هویت...');
     session=await getSession();
     status('در حال دریافت مجوز امن LiveKit...');
     const creds=await getCredentials();
     say((creds.role==='consultant'?'مشاور':'مراجعه‌کننده')+' · جلسه امن');
     room=new L.Room({adaptiveStream:true,dynacast:true});
     bindRoomEvents();
-    room.prepareConnection(creds.server_url,creds.participant_token);
     status('در حال اتصال به اتاق تماس...');
     await room.connect(creds.server_url,creds.participant_token);
     await enableLocal();
-    joined=true;
-    status('✅ تماس LiveKit آماده است؛ منتظر طرف مقابل...','ok');
+    joined=true; status('✅ تماس LiveKit آماده است؛ منتظر طرف مقابل...','ok');
   }catch(e){
-    console.error(e);
-    try{await room?.disconnect()}catch{}
+    console.error(e); try{await room?.disconnect()}catch{}
     room=null;$('join').disabled=false;
     status('❌ '+(e?.message||'ورود به تماس انجام نشد.'),'err');
   }
 }
 async function hangup(){
-  closing=true;
-  try{await room?.disconnect()}catch{}
-  room=null;joined=false;
-  remoteBoxes.forEach(box=>box.remove());remoteBoxes.clear();
-  $('remoteGrid').innerHTML='';$('emptyRemote').style.display='block';
-  $('local').srcObject=null;
+  closing=true; try{await room?.disconnect()}catch{}
+  room=null;joined=false;remoteBoxes.forEach(box=>box.remove());remoteBoxes.clear();
+  $('remoteGrid').innerHTML='';$('emptyRemote').style.display='block';$('local').srcObject=null;
   $('join').disabled=false;$('hangup').disabled=true;$('mic').disabled=true;$('cam').disabled=true;
   status('تماس پایان یافت.','err');
 }
-$('join').onclick=join;
-$('hangup').onclick=hangup;
+$('join').onclick=join;$('hangup').onclick=hangup;
 $('mic').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Audio);if(pub?.track){pub.track.isMuted?p.setMicrophoneEnabled(true):p.setMicrophoneEnabled(false);$('mic').textContent=pub.track.isMuted?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
 $('cam').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Video);if(pub?.track){pub.track.isMuted?p.setCameraEnabled(true):p.setCameraEnabled(false);$('cam').textContent=pub.track.isMuted?'📷 دوربین':'🚫 دوربین خاموش'}};
 $('audio').onclick=async()=>{try{await room?.startAudio();$('audio').style.display='none';status('✅ صدا فعال شد.','ok')}catch(e){status('فعال‌سازی صدا انجام نشد.','err')}};
