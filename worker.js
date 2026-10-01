@@ -89,37 +89,47 @@ async function hasPermission(env, token, permission){
   return (await r.json().catch(()=>false))===true;
 }
 
+async function supabaseRpc(env, token, functionName, body){
+  const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
+  const r=await fetch(getSupabaseUrl(env)+"/rest/v1/rpc/"+functionName,{
+    method:"POST",
+    headers:{"apikey":sbKey,"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify(body||{})
+  });
+  const data=await r.json().catch(()=>null);
+  if(!r.ok) throw new Error(data?.message||data?.error||data?.details||"Supabase RPC failed");
+  return data;
+}
+
 async function authorizeCallRoom(request, env, roomKey){
   const token=getBearer(request);
   const userId=await getUserId(token,env);
   if(!userId)return {ok:false,status:401,error:"احراز هویت لازم است."};
-  const rooms=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,workshop_id,room_key,status,starts_at,ends_at&room_key=eq."+encodeURIComponent(roomKey)+"&limit=1");
-  const room=rooms?.[0];
-  if(!room)return {ok:false,status:404,error:"اتاق تماس پیدا نشد."};
-  if(["expired","cancelled"].includes(room.status))return {ok:false,status:410,error:"این اتاق تماس منقضی یا لغو شده است."};
-  const now=Date.now(), start=new Date(room.starts_at).getTime()-15*60*1000, end=new Date(room.ends_at).getTime()+30*60*1000;
-  if(!Number.isFinite(start)||!Number.isFinite(end)||now<start||now>end)return {ok:false,status:403,error:"خارج از بازه مجاز ورود به اتاق هستید."};
 
-  let role=null;
-  if(await hasPermission(env,token,"content.manage") || await hasPermission(env,token,"calls.manage")) role="admin";
-
-  if(room.room_type==="private_consultation"){
-    const ap=(await sbSelect(env,"appointments?select=id,user_id,consultant_id,scheduled_at,status&id=eq."+encodeURIComponent(room.appointment_id)+"&limit=1"))?.[0];
-    if(!ap)return {ok:false,status:404,error:"نوبت مرتبط با اتاق پیدا نشد."};
-    if(userId===ap.user_id)role=role||"client";
-    const links=await sbSelect(env,"consultant_user_links?select=consultant_id&user_id=eq."+encodeURIComponent(userId)+"&consultant_id=eq."+encodeURIComponent(ap.consultant_id)+"&limit=1");
-    if(links?.length)role=role||"consultant";
-    if(!role)return {ok:false,status:403,error:"شما عضو این جلسه نیستید."};
-  } else if(room.room_type==="workshop"){
-    const ws=(await sbSelect(env,"workshops?select=id,created_by&id=eq."+encodeURIComponent(room.workshop_id)+"&limit=1"))?.[0];
-    if(ws?.created_by===userId)role=role||"instructor";
-    if(!role){
-      const regs=await sbSelect(env,"workshop_registrations?select=id&workshop_id=eq."+encodeURIComponent(room.workshop_id)+"&user_id=eq."+encodeURIComponent(userId)+"&payment_status=in.(free,paid)&limit=1");
-      if(regs?.length)role="attendee";
-    }
-    if(!role)return {ok:false,status:403,error:"ثبت‌نام معتبر برای این کارگاه پیدا نشد."};
+  try{
+    const data=await supabaseRpc(env,token,"authorize_my_call_room",{p_room_key:roomKey});
+    const room=Array.isArray(data)?data[0]:data;
+    if(!room?.room_id)return {ok:false,status:404,error:"اتاق تماس پیدا نشد."};
+    return {ok:true,room,userId,role:room.participant_role||"participant",token};
+  }catch(e){
+    const msg=String(e?.message||"");
+    const map={
+      AUTH_REQUIRED:"احراز هویت لازم است.",
+      CALL_ROOM_NOT_FOUND:"اتاق تماس پیدا نشد.",
+      CALL_ROOM_INACTIVE:"این اتاق تماس منقضی یا لغو شده است.",
+      CALL_ROOM_INVALID:"اطلاعات اتاق تماس معتبر نیست.",
+      APPOINTMENT_NOT_FOUND:"نوبت مرتبط با اتاق پیدا نشد.",
+      APPOINTMENT_NOT_AVAILABLE:"این نوبت برای تماس قابل استفاده نیست.",
+      WORKSHOP_NOT_FOUND:"کارگاه مرتبط با اتاق پیدا نشد.",
+      CALL_ACCESS_DENIED:"شما عضو این جلسه نیستید.",
+      CALL_TIME_WINDOW_CLOSED:"خارج از بازه مجاز ورود به اتاق هستید."
+    };
+    const friendly=map[msg]||"احراز دسترسی به اتاق تماس انجام نشد.";
+    const status=msg==="CALL_ROOM_NOT_FOUND"||msg==="APPOINTMENT_NOT_FOUND"||msg==="WORKSHOP_NOT_FOUND"?404:
+                 msg==="CALL_ROOM_INACTIVE"?410:
+                 msg==="CALL_ACCESS_DENIED"||msg==="CALL_TIME_WINDOW_CLOSED"||msg==="APPOINTMENT_NOT_AVAILABLE"?403:500;
+    return {ok:false,status,error:friendly};
   }
-  return {ok:true,room,userId,role,token};
 }
 
 export class CallSignalingRoom extends DurableObject {
@@ -220,44 +230,59 @@ export default {
         const token=auth.slice(7).trim();
         const userId=await getUserId(token,env);
         if(!userId)return json({error:"جلسه ورود معتبر نیست."},401,{"Cache-Control":"no-store"});
+
         const body=await request.json().catch(()=>({}));
         const appointmentId=String(body?.appointment_id||"").trim();
         if(!appointmentId)return json({error:"شناسه نوبت ارسال نشده است."},400,{"Cache-Control":"no-store"});
-        const rooms=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,room_key,status,starts_at,ends_at&appointment_id=eq."+encodeURIComponent(appointmentId)+"&room_type=eq.private_consultation&limit=1");
-        let callRoom=rooms?.[0];
-        if(!callRoom){
-          const sbUrl=getSupabaseUrl(env);
-          const sbKey=env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX";
-          const rpcName=(await hasPermission(env,token,"content.manage") || await hasPermission(env,token,"calls.manage"))
-            ?"get_or_create_my_consultant_call_room"
-            :"get_or_create_my_call_room";
-          const rpc=await fetch(sbUrl+"/rest/v1/rpc/"+rpcName,{
-            method:"POST",
-            headers:{"apikey":sbKey,"Authorization":"Bearer "+token,"Content-Type":"application/json"},
-            body:JSON.stringify({p_appointment_id:appointmentId})
-          });
-          const created=await rpc.json().catch(()=>null);
-          if(!rpc.ok)return json({error:created?.message||created?.error||"اتاق تماس این نوبت ساخته نشد."},400,{"Cache-Control":"no-store"});
-          const row=Array.isArray(created)?created[0]:created;
-          const roomId=row?.room_id||row?.id;
-          if(!row?.room_key)return json({error:"کلید اتاق تماس دریافت نشد."},500,{"Cache-Control":"no-store"});
-          callRoom={id:roomId,room_type:"private_consultation",appointment_id:appointmentId,room_key:row.room_key,status:row.room_status||row.status};
-          const refreshed=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,room_key,status,starts_at,ends_at&id=eq."+encodeURIComponent(roomId)+"&limit=1");
-          if(refreshed?.[0])callRoom=refreshed[0];
+
+        const created=await supabaseRpc(env,token,"get_or_create_my_live_call_room",{
+          p_appointment_id:appointmentId
+        });
+        const row=Array.isArray(created)?created[0]:created;
+        if(!row?.room_id||!row?.room_key){
+          return json({error:"اطلاعات اتاق تماس دریافت نشد."},500,{"Cache-Control":"no-store"});
         }
-        const authz=await authorizeCallRoom(request,env,callRoom.room_key);
-        if(!authz.ok)return json({error:authz.error},authz.status,{"Cache-Control":"no-store"});
+
         const livekitUrl=env.LIVEKIT_URL||"";
         const livekitKey=env.LIVEKIT_API_KEY||"";
         const livekitSecret=env.LIVEKIT_API_SECRET||"";
-        if(!livekitUrl||!livekitKey||!livekitSecret)return json({error:"تنظیمات LiveKit روی Worker کامل نشده است."},503,{"Cache-Control":"no-store"});
-        const roomName="consultation-"+String(callRoom.id).replace(/[^a-zA-Z0-9_-]/g,"");
-        const identity="u-"+authz.userId;
-        const displayName=authz.role==="consultant"?"consultant":"client";
-        const participantToken=await createLiveKitToken({apiKey:livekitKey,apiSecret:livekitSecret,identity,name:displayName,roomName});
-        return json({server_url:livekitUrl,participant_token:participantToken,room_name:roomName,role:authz.role},201,{"Cache-Control":"no-store"});
+        if(!livekitUrl||!livekitKey||!livekitSecret){
+          return json({error:"تنظیمات LiveKit روی Worker کامل نشده است."},503,{"Cache-Control":"no-store"});
+        }
+
+        const roomName="consultation-"+String(row.room_id).replace(/[^a-zA-Z0-9_-]/g,"");
+        const identity="u-"+userId;
+        const role=row.participant_role||"client";
+        const displayName=role==="consultant"?"consultant":role==="admin"?"admin":"client";
+        const participantToken=await createLiveKitToken({
+          apiKey:livekitKey,
+          apiSecret:livekitSecret,
+          identity,
+          name:displayName,
+          roomName
+        });
+
+        return json({
+          server_url:livekitUrl,
+          participant_token:participantToken,
+          room_name:roomName,
+          room_key:row.room_key,
+          role
+        },201,{"Cache-Control":"no-store"});
       } catch(e) {
-        return json({error:e?.message||"صدور مجوز LiveKit انجام نشد."},500,{"Cache-Control":"no-store"});
+        const msg=String(e?.message||"");
+        const map={
+          AUTH_REQUIRED:"احراز هویت لازم است.",
+          APPOINTMENT_NOT_FOUND:"نوبت موردنظر پیدا نشد.",
+          APPOINTMENT_NOT_AVAILABLE:"این نوبت برای تماس قابل استفاده نیست.",
+          CALL_ACCESS_DENIED:"شما عضو این جلسه نیستید.",
+          CALL_TIME_WINDOW_CLOSED:"خارج از بازه مجاز ورود به اتاق هستید."
+        };
+        const friendly=map[msg]||msg||"صدور مجوز LiveKit انجام نشد.";
+        const status=msg==="APPOINTMENT_NOT_FOUND"?404:
+                     msg==="CALL_ACCESS_DENIED"||msg==="CALL_TIME_WINDOW_CLOSED"||msg==="APPOINTMENT_NOT_AVAILABLE"?403:
+                     msg==="AUTH_REQUIRED"?401:500;
+        return json({error:friendly},status,{"Cache-Control":"no-store"});
       }
     }
 
