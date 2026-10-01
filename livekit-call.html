@@ -38,14 +38,13 @@ h1{margin:0 0 8px;font-size:22px}.muted{color:#667085;font-size:13px}.status{mar
 <div id="emptyRemote" class="muted">منتظر ورود طرف مقابل هستیم...</div>
 </section>
 </main>
-<script type="module">
-import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import * as LiveKit from 'https://cdn.jsdelivr.net/npm/livekit-client@2.15.6/+esm';
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.15.6/dist/livekit-client.umd.min.js"></script>
+<script>
 const SB_URL='https://aserkyiwwyggtixckjsv.supabase.co';
 const SB_KEY='sb_publishable_7THOazCrwgQGvRPGC8grgA_6J1E_9HX';
-const db=createClient(SB_URL,SB_KEY);
-const L=LiveKit;
+const db=supabase.createClient(SB_URL,SB_KEY);
+const L=window.LivekitClient;
 const $=id=>document.getElementById(id);
 const appointmentId=new URLSearchParams(location.search).get('appointment_id');
 let room=null,session=null,joined=false,closing=false,remoteBoxes=new Map();
@@ -59,13 +58,15 @@ async function getSession(){
   return data.session;
 }
 async function getCredentials(){
+  if(!L)throw new Error('کتابخانه تماس LiveKit در مرورگر بارگذاری نشد.');
   const r=await fetch('/api/livekit-token',{
     method:'POST',
     headers:{'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Cache-Control':'no-store'},
     body:JSON.stringify({appointment_id:appointmentId})
   });
   const data=await r.json().catch(()=>null);
-  if(!r.ok)throw new Error(data?.error||'مجوز LiveKit دریافت نشد.');
+  if(!r.ok)throw new Error((data?.error||'مجوز LiveKit دریافت نشد.')+' [HTTP '+r.status+']');
+  if(!data?.server_url||!data?.participant_token)throw new Error('پاسخ مجوز LiveKit ناقص است.');
   return data;
 }
 function clearRemote(participantIdentity){
@@ -121,6 +122,7 @@ function bindRoomEvents(){
 }
 async function join(){
   if(joined)return;
+  if(!L){status('❌ کتابخانه تماس LiveKit بارگذاری نشده است.','err');return}
   if(!appointmentId){status('شناسه نوبت در لینک وجود ندارد.','err');return}
   $('join').disabled=true;
   try{
@@ -152,7 +154,7 @@ $('join').onclick=join;$('hangup').onclick=hangup;
 $('mic').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Audio);if(pub?.track){pub.track.isMuted?p.setMicrophoneEnabled(true):p.setMicrophoneEnabled(false);$('mic').textContent=pub.track.isMuted?'🎙️ میکروفون':'🔇 میکروفون خاموش'}};
 $('cam').onclick=()=>{const p=room?.localParticipant;if(!p)return;const pub=[...p.trackPublications.values()].find(x=>x.track?.kind===L.Track.Kind.Video);if(pub?.track){pub.track.isMuted?p.setCameraEnabled(true):p.setCameraEnabled(false);$('cam').textContent=pub.track.isMuted?'📷 دوربین':'🚫 دوربین خاموش'}};
 $('audio').onclick=async()=>{try{await room?.startAudio();$('audio').style.display='none';status('✅ صدا فعال شد.','ok')}catch(e){status('فعال‌سازی صدا انجام نشد.','err')}};
-status(appointmentId?'برای شروع، «ورود به تماس» را بزنید.':'شناسه نوبت مشخص نیست.','err');
+status(appointmentId?'نسخه تماس: LiveKit 2.15.6 · برای شروع «ورود به تماس» را بزنید.':'شناسه نوبت مشخص نیست.','err');
 </script>
 </body>
 </html>
