@@ -13,6 +13,31 @@ function getSupabaseUrl(env){
   return env.SUPABASE_URL || "https://aserkyiwwyggtixckjsv.supabase.co";
 }
 
+
+function base64UrlFromBytes(bytes){
+  let binary="";
+  const arr=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
+  for(const b of arr)binary+=String.fromCharCode(b);
+  return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"");
+}
+function base64UrlFromText(text){return base64UrlFromBytes(new TextEncoder().encode(text));}
+async function createLiveKitToken({apiKey,apiSecret,identity,name,roomName,ttlSeconds=3600}){
+  const now=Math.floor(Date.now()/1000);
+  const header={alg:"HS256",typ:"JWT"};
+  const payload={
+    iss:apiKey,
+    sub:identity,
+    nbf:now,
+    exp:now+ttlSeconds,
+    name,
+    video:{room:roomName,roomJoin:true,canPublish:true,canSubscribe:true,canPublishData:false}
+  };
+  const unsigned=base64UrlFromText(JSON.stringify(header))+"."+base64UrlFromText(JSON.stringify(payload));
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(apiSecret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(unsigned));
+  return unsigned+"."+base64UrlFromBytes(signature);
+}
+
 async function addDesignerFooter(response){
   const type=response.headers.get("Content-Type")||"";
   if(!response.ok||!type.toLowerCase().includes("text/html")) return response;
@@ -185,6 +210,35 @@ export default {
         return json({ok:true,ice_servers:data.ice_servers,ttl:Number(data.ttl)||3600},200,{"Cache-Control":"no-store"});
       } catch (e) {
         return json({error:e?.message||"خطا در دریافت تنظیمات TURN."},502,{"Cache-Control":"no-store"});
+      }
+    }
+
+    if (path === "/api/livekit-token" && request.method === "POST") {
+      try {
+        const auth=request.headers.get("Authorization")||"";
+        if(!auth.startsWith("Bearer ")) return json({error:"ابتدا وارد حساب کاربری شوید."},401,{"Cache-Control":"no-store"});
+        const token=auth.slice(7).trim();
+        const userId=await getUserId(token,env);
+        if(!userId)return json({error:"جلسه ورود معتبر نیست."},401,{"Cache-Control":"no-store"});
+        const body=await request.json().catch(()=>({}));
+        const appointmentId=String(body?.appointment_id||"").trim();
+        if(!appointmentId)return json({error:"شناسه نوبت ارسال نشده است."},400,{"Cache-Control":"no-store"});
+        const rooms=await sbSelect(env,"call_rooms?select=id,room_type,appointment_id,room_key,status,starts_at,ends_at&appointment_id=eq."+encodeURIComponent(appointmentId)+"&room_type=eq.private_consultation&limit=1");
+        const callRoom=rooms?.[0];
+        if(!callRoom)return json({error:"اتاق تماس این نوبت هنوز ساخته نشده است."},404,{"Cache-Control":"no-store"});
+        const authz=await authorizeCallRoom(request,env,callRoom.room_key);
+        if(!authz.ok)return json({error:authz.error},authz.status,{"Cache-Control":"no-store"});
+        const livekitUrl=env.LIVEKIT_URL||"";
+        const livekitKey=env.LIVEKIT_API_KEY||"";
+        const livekitSecret=env.LIVEKIT_API_SECRET||"";
+        if(!livekitUrl||!livekitKey||!livekitSecret)return json({error:"تنظیمات LiveKit روی Worker کامل نشده است."},503,{"Cache-Control":"no-store"});
+        const roomName="consultation-"+String(callRoom.id).replace(/[^a-zA-Z0-9_-]/g,"");
+        const identity="u-"+authz.userId;
+        const displayName=authz.role==="consultant"?"consultant":"client";
+        const participantToken=await createLiveKitToken({apiKey:livekitKey,apiSecret:livekitSecret,identity,name:displayName,roomName});
+        return json({server_url:livekitUrl,participant_token:participantToken,room_name:roomName,role:authz.role},201,{"Cache-Control":"no-store"});
+      } catch(e) {
+        return json({error:e?.message||"صدور مجوز LiveKit انجام نشد."},500,{"Cache-Control":"no-store"});
       }
     }
 
