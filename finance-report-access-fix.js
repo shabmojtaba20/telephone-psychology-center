@@ -4,7 +4,7 @@
     window.guard=async function(){
       const {data:{session}}=await db.auth.getSession();
       if(!session){location.replace('/admin-login.html?redirect=/finance-reports.html');return false}
-      const r=await db.rpc('has_admin_permission',{p_permission:'finance.manage'});
+      const r=await db.rpc('has_admin_permission',{p_permission:'finance.reports.view'});
       if(r.error||r.data!==true){
         if(typeof note==='function')note('این حساب دسترسی مدیریت گزارش مالی ندارد.',true);
         return false;
