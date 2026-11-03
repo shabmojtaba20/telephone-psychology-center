@@ -14,9 +14,10 @@ function download(rows){
 async function exportFullFinanceCSV(){
  const session=(await db.auth.getSession()).data.session;
  if(!session){location.replace('/admin-login.html?redirect=/finance-reports.html');return}
- const permission=await db.rpc('has_admin_permission',{p_permission:'finance.view'});
- if(permission.error||permission.data!==true){alert('این حساب دسترسی گزارش مالی ندارد.');return}
  const p={p_from:document.getElementById('from')?.value||null,p_to:document.getElementById('to')?.value||null};
+ if(!window.FinanceReportAccess||!(await window.FinanceReportAccess.requireExport('finance.dashboard','csv',{from:p.p_from,to:p.p_to}))){
+  alert('برای خروجی CSV این گزارش، مجوز مستقل خروجی لازم است.');return;
+ }
  const [r,b,e]=await Promise.all([
   db.rpc('get_finance_advanced_report',p),
   db.rpc('get_finance_income_breakdown',p),
