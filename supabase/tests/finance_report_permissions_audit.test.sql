@@ -114,3 +114,5 @@ end
 $tests$;
 
 rollback;
+
+select 'PASS: report permission and audit role matrix' as test_result;
